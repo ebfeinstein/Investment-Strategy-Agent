@@ -1,0 +1,712 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Stock Screener</title>
+  <style>
+    :root {
+      --bg: #0f0f1a;
+      --panel: #1a1a2e;
+      --panel2: #16213e;
+      --text: #e0e0e0;
+      --dim: #888;
+      --accent: #4fc3f7;
+      --green: #4caf50;
+      --red: #f44336;
+      --yellow: #ffc107;
+      --border: #2a2a4a;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: var(--bg); color: var(--text); font-family: system-ui, -apple-system, sans-serif; min-height: 100vh; }
+
+    header { background: var(--panel); border-bottom: 1px solid var(--border); padding: 1rem 2rem; }
+    header h1 { font-size: 1.4rem; color: var(--accent); }
+    header p { color: var(--dim); font-size: 0.82rem; margin-top: 0.2rem; }
+
+    .layout { display: grid; grid-template-columns: 280px 1fr; min-height: calc(100vh - 62px); }
+
+    .sidebar { background: var(--panel); border-right: 1px solid var(--border); padding: 1.25rem; overflow-y: auto; }
+    .main { padding: 1.5rem; overflow-x: auto; }
+
+    .group-title { font-size: .68rem; text-transform: uppercase; letter-spacing: .1em; color: var(--dim); margin: 1.25rem 0 .6rem; }
+    .group-title:first-child { margin-top: 0; }
+
+    label { display: block; font-size: .78rem; color: var(--dim); margin: .65rem 0 .25rem; }
+    input, select { width: 100%; background: var(--panel2); border: 1px solid var(--border); color: var(--text); padding: .45rem .7rem; border-radius: 5px; font-size: .83rem; outline: none; }
+    input:focus, select:focus { border-color: var(--accent); }
+    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: .5rem; }
+    .unit { font-size: .7rem; color: var(--dim); margin-top: .2rem; }
+
+    button { width: 100%; margin-top: 1.1rem; padding: .7rem; background: var(--accent); color: #000; border: none; border-radius: 5px; font-size: .88rem; font-weight: 600; cursor: pointer; transition: opacity .15s; }
+    button:hover { opacity: .85; }
+    button:disabled { opacity: .35; cursor: not-allowed; }
+    .btn-ghost { background: transparent; color: var(--dim); border: 1px solid var(--border); margin-top: .5rem; }
+    .btn-ghost:hover { color: var(--text); border-color: var(--dim); }
+
+    .pill { display: inline-flex; align-items: center; padding: .22rem .7rem; border-radius: 999px; font-size: .73rem; cursor: pointer; border: 1px solid var(--border); background: transparent; color: var(--dim); width: auto; margin-top: 0; font-weight: 500; }
+    .pill.active { background: var(--accent); color: #000; border-color: var(--accent); }
+    .pill:hover:not(.active) { border-color: var(--dim); color: var(--text); }
+
+    .api-note { font-size: .7rem; color: var(--dim); margin-top: .35rem; line-height: 1.45; }
+    .api-note a { color: var(--accent); text-decoration: none; }
+
+    #progressWrap { margin-top: 1rem; display: none; }
+    .progress-bar { height: 3px; background: var(--border); border-radius: 2px; overflow: hidden; }
+    .progress-fill { height: 100%; background: var(--accent); width: 0; transition: width .3s; }
+    #progressLabel { font-size: .75rem; color: var(--dim); text-align: center; margin-top: .4rem; }
+
+    .error-box { display: none; background: rgba(244,67,54,.1); border: 1px solid rgba(244,67,54,.3); color: #ef9a9a; padding: .7rem; border-radius: 5px; font-size: .78rem; margin-top: .9rem; line-height: 1.45; }
+
+    .results-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; flex-wrap: wrap; gap: .5rem; }
+    .results-bar-left { display: flex; align-items: center; gap: .75rem; flex-wrap: wrap; }
+    .results-bar h2 { font-size: .95rem; }
+    #resultsCount { font-size: .8rem; color: var(--dim); }
+    #viewToggle { display: none; gap: .35rem; }
+
+    .empty { text-align: center; padding: 4rem 2rem; color: var(--dim); }
+    .empty .icon { font-size: 2.8rem; }
+    .empty p { margin-top: .6rem; font-size: .85rem; line-height: 1.5; }
+
+    .table-wrap { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; font-size: .81rem; }
+    th { background: var(--panel); color: var(--dim); font-weight: 500; text-align: left; padding: .55rem .75rem; border-bottom: 1px solid var(--border); white-space: nowrap; cursor: pointer; user-select: none; }
+    th:hover, th.active { color: var(--accent); }
+    th.nosort { cursor: default; }
+    th.nosort:hover { color: var(--dim); }
+    td { padding: .5rem .75rem; border-bottom: 1px solid var(--border); white-space: nowrap; }
+    tr.data-row { cursor: pointer; }
+    tr.data-row:hover td { background: rgba(255,255,255,.025); }
+
+    .sym { font-weight: 700; color: var(--accent); }
+    .tag { display: inline-block; padding: .1rem .45rem; border-radius: 3px; font-size: .68rem; background: rgba(79,195,247,.12); color: var(--accent); }
+    .good { color: var(--green); }
+    .bad  { color: var(--red); }
+    .ok   { color: var(--yellow); }
+
+    .score-badge { display: inline-block; padding: .15rem .5rem; border-radius: 999px; font-size: .75rem; font-weight: 700; background: rgba(255,255,255,.07); min-width: 2.2rem; text-align: center; }
+
+    .star-btn { background: none; border: none; cursor: pointer; color: var(--dim); font-size: 1rem; padding: 0; width: auto; margin: 0; line-height: 1; }
+    .star-btn.starred { color: var(--yellow); }
+    .star-btn:hover { opacity: 1; color: var(--yellow); }
+
+    .td-spark { min-width: 86px; }
+
+    /* Detail drawer */
+    #detailBackdrop { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.5); z-index: 100; }
+    #detailPanel {
+      position: fixed; right: 0; top: 0; width: 420px; height: 100vh;
+      background: var(--panel); border-left: 1px solid var(--border);
+      z-index: 101; transform: translateX(100%); transition: transform .25s ease;
+      overflow-y: auto; display: flex; flex-direction: column;
+    }
+    #detailPanel.open { transform: translateX(0); }
+    .dp-header {
+      position: sticky; top: 0; background: var(--panel); border-bottom: 1px solid var(--border);
+      padding: 1rem 1.25rem; display: flex; justify-content: space-between; align-items: flex-start; z-index: 1;
+    }
+    .dp-title { font-size: 1rem; font-weight: 600; }
+    .dp-sub { font-size: .78rem; color: var(--dim); margin-top: .25rem; display: flex; gap: .5rem; align-items: center; }
+    .dp-close { background: none; border: none; color: var(--dim); font-size: 1.3rem; cursor: pointer; padding: 0; width: auto; margin: 0; line-height: 1; flex-shrink: 0; }
+    .dp-close:hover { color: var(--text); opacity: 1; }
+    .dp-desc { font-size: .78rem; color: var(--dim); line-height: 1.55; padding: .85rem 1.25rem; border-bottom: 1px solid var(--border); }
+    .dp-section { font-size: .68rem; text-transform: uppercase; letter-spacing: .08em; color: var(--dim); padding: .9rem 1.25rem .45rem; }
+    .stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: .5rem; padding: 0 1.25rem .75rem; }
+    .stat-card { background: var(--panel2); border-radius: 6px; padding: .6rem .75rem; }
+    .sc-label { font-size: .67rem; color: var(--dim); text-transform: uppercase; letter-spacing: .05em; }
+    .sc-value { font-size: .95rem; font-weight: 600; margin-top: .2rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .dp-chart { padding: 0 1.25rem .85rem; }
+    .dp-link { padding: 0 1.25rem .85rem; font-size: .78rem; }
+    .dp-link a { color: var(--accent); text-decoration: none; }
+    .dp-link a:hover { text-decoration: underline; }
+    .dp-loading { text-align: center; padding: 3rem; color: var(--dim); font-size: .85rem; }
+
+    @media (max-width: 700px) {
+      .layout { grid-template-columns: 1fr; }
+      .sidebar { border-right: none; border-bottom: 1px solid var(--border); }
+      #detailPanel { width: 100%; }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>Stock Screener</h1>
+  <p>Fast revenue growth &middot; Low relative P/E &middot; Wide margins &middot; Market cap &gt; $2B</p>
+</header>
+
+<div class="layout">
+  <div class="sidebar">
+    <div class="group-title">API Key</div>
+    <label>Financial Modeling Prep Key</label>
+    <input type="password" id="apiKey" placeholder="Paste your FMP API key">
+    <p class="api-note">Free at <a href="https://financialmodelingprep.com/developer/docs" target="_blank">financialmodelingprep.com</a> — 250 req/day. Each run uses ~2 req per stock scanned.</p>
+
+    <div class="group-title">Universe</div>
+    <label>Min Market Cap</label>
+    <select id="minCap">
+      <option value="2000000000">$2 B+</option>
+      <option value="10000000000">$10 B+</option>
+      <option value="50000000000">$50 B+</option>
+      <option value="100000000000">$100 B+</option>
+    </select>
+
+    <label>Sector (optional)</label>
+    <select id="sector">
+      <option value="">All Sectors</option>
+      <option>Technology</option>
+      <option>Healthcare</option>
+      <option>Consumer Cyclical</option>
+      <option>Financial Services</option>
+      <option>Communication Services</option>
+      <option>Consumer Defensive</option>
+      <option>Energy</option>
+      <option>Basic Materials</option>
+      <option>Real Estate</option>
+      <option>Utilities</option>
+      <option>Industrials</option>
+    </select>
+
+    <label>Stocks to scan</label>
+    <select id="limit">
+      <option value="25">25 (fastest)</option>
+      <option value="50" selected>50</option>
+      <option value="100">100</option>
+      <option value="200">200 (slow on free tier)</option>
+    </select>
+
+    <div class="group-title">Criteria</div>
+    <div class="two-col">
+      <div>
+        <label>Min Revenue Growth</label>
+        <input type="number" id="minRevGrowth" value="15" min="0" max="500">
+        <div class="unit">% year-over-year</div>
+      </div>
+      <div>
+        <label>Max P/E vs Industry</label>
+        <input type="number" id="maxPERatio" value="0.85" min="0.1" max="3" step="0.05">
+        <div class="unit">ratio (1.0 = parity)</div>
+      </div>
+    </div>
+    <div class="two-col" style="margin-top:.5rem">
+      <div>
+        <label>Min Gross Margin</label>
+        <input type="number" id="minGross" value="30" min="0" max="100">
+        <div class="unit">%</div>
+      </div>
+      <div>
+        <label>Min Net Margin</label>
+        <input type="number" id="minNet" value="8" min="0" max="100">
+        <div class="unit">%</div>
+      </div>
+    </div>
+
+    <button id="runBtn" onclick="run()">&#9654; Run Screener</button>
+    <button id="exportBtn" class="btn-ghost" onclick="exportCSV()" disabled>&#8595; Export CSV</button>
+
+    <div id="progressWrap">
+      <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+      <div id="progressLabel"></div>
+    </div>
+    <div class="error-box" id="errBox"></div>
+  </div>
+
+  <div class="main">
+    <div class="results-bar">
+      <div class="results-bar-left">
+        <h2 id="resultsTitle">Results</h2>
+        <div id="viewToggle">
+          <button class="pill active" id="btnAll" onclick="setView('all')">All</button>
+          <button class="pill" id="btnWatch" onclick="setView('watchlist')">&#9733; Watchlist (0)</button>
+        </div>
+      </div>
+      <span id="resultsCount"></span>
+    </div>
+    <div id="resultsArea">
+      <div class="empty">
+        <div class="icon">📊</div>
+        <p>Enter your FMP API key, set your filters,<br>and click <strong>Run Screener</strong>.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Detail drawer -->
+<div id="detailBackdrop" onclick="closeDetail()"></div>
+<div id="detailPanel">
+  <div id="detailContent"><div class="dp-loading">Loading…</div></div>
+</div>
+
+<script>
+  const FMP = 'https://financialmodelingprep.com/api/v3';
+  let rows = [];
+  let sortKey = 'score';
+  let sortAsc = false;
+  let viewMode = 'all';
+  let apiKey = '';
+  let watchlist = new Set(JSON.parse(localStorage.getItem('watchlist') || '[]'));
+
+  // ── Utilities ──────────────────────────────────────────────────────────────
+
+  async function get(url) {
+    const r = await fetch(url);
+    if (!r.ok) throw new Error(`API ${r.status} — check your key`);
+    const data = await r.json();
+    if (data && data['Error Message']) throw new Error(data['Error Message']);
+    return data;
+  }
+
+  const sleep = ms => new Promise(res => setTimeout(res, ms));
+
+  function prog(label, p) {
+    document.getElementById('progressLabel').textContent = label;
+    document.getElementById('progressFill').style.width = p + '%';
+  }
+
+  function showErr(msg) { const e = document.getElementById('errBox'); e.textContent = msg; e.style.display = 'block'; }
+  function hideErr()    { document.getElementById('errBox').style.display = 'none'; }
+
+  function fmt(n, d = 1)  { return n == null || isNaN(n) ? '—' : (+n).toFixed(d); }
+  function fmtPct(n)      { return n == null || isNaN(n) ? '—' : (n * 100).toFixed(1) + '%'; }
+  function fmtCap(n) {
+    if (!n) return '—';
+    if (n >= 1e12) return '$' + (n / 1e12).toFixed(1) + 'T';
+    if (n >= 1e9)  return '$' + (n / 1e9).toFixed(1) + 'B';
+    return '$' + (n / 1e6).toFixed(0) + 'M';
+  }
+
+  // ── Scoring ────────────────────────────────────────────────────────────────
+
+  function computeScores(rows) {
+    if (!rows.length) return;
+    function norm(vals, invert = false) {
+      const clean = vals.filter(v => v != null && !isNaN(v));
+      if (!clean.length) return vals.map(() => 50);
+      const mn = Math.min(...clean), mx = Math.max(...clean), rng = mx - mn || 1;
+      return vals.map(v => {
+        if (v == null || isNaN(v)) return 50;
+        const n = (v - mn) / rng;
+        return (invert ? 1 - n : n) * 100;
+      });
+    }
+    const rg  = norm(rows.map(r => r.revGrowth));
+    const pe  = norm(rows.map(r => r.peRel), true);
+    const grs = norm(rows.map(r => r.gross));
+    const net = norm(rows.map(r => r.net));
+    rows.forEach((r, i) => {
+      r.score = Math.round(rg[i] * 0.30 + pe[i] * 0.20 + grs[i] * 0.25 + net[i] * 0.25);
+    });
+  }
+
+  function scoreBadge(score) {
+    if (score == null) return '—';
+    const cls = score >= 70 ? 'good' : score >= 40 ? 'ok' : 'bad';
+    return `<span class="score-badge ${cls}">${score}</span>`;
+  }
+
+  // ── Sparklines ─────────────────────────────────────────────────────────────
+
+  function makeSVG(prices, w = 80, h = 28) {
+    if (!prices || prices.length < 2) return '';
+    const pad = 2, rng = (Math.max(...prices) - Math.min(...prices)) || 1, mn = Math.min(...prices);
+    const pts = prices.map((p, i) => {
+      const x = pad + (i / (prices.length - 1)) * (w - pad * 2);
+      const y = pad + (1 - (p - mn) / rng) * (h - pad * 2);
+      return `${x.toFixed(1)},${y.toFixed(1)}`;
+    }).join(' ');
+    const color = prices[prices.length - 1] >= prices[0] ? '#4caf50' : '#f44336';
+    return `<svg width="${w}" height="${h}" style="vertical-align:middle;display:block"><polyline points="${pts}" fill="none" stroke="${color}" stroke-width="1.5" stroke-linejoin="round"/></svg>`;
+  }
+
+  async function fetchSparklines() {
+    const key = apiKey;
+    for (const row of rows) {
+      if (row.priceHistory) continue;
+      try {
+        const data = await get(`${FMP}/historical-price-full/${row.symbol}?timeseries=90&apikey=${key}`);
+        if (data.historical && data.historical.length >= 2) {
+          const prices = [...data.historical].reverse().map(d => d.close);
+          row.priceHistory = prices;
+          row.sparkline = makeSVG(prices);
+          const td = document.querySelector(`tr[data-sym="${row.symbol}"] .td-spark`);
+          if (td) td.innerHTML = row.sparkline || '<span style="color:var(--dim);font-size:.7rem">n/a</span>';
+        }
+      } catch { /* ignore */ }
+      await sleep(120);
+    }
+  }
+
+  // ── Revenue bar chart (detail panel) ──────────────────────────────────────
+
+  function revenueChart(stmts) {
+    if (!stmts.length) return '';
+    const W = 368, H = 110, pL = 8, pR = 8, pT = 12, pB = 28;
+    const cw = W - pL - pR, ch = H - pT - pB;
+    const revs = stmts.map(s => s.revenue || 0);
+    const nets = stmts.map(s => s.netIncome || 0);
+    const maxV = Math.max(...revs, 1);
+    const gap = cw / stmts.length;
+    const bw = gap * 0.55;
+
+    let bars = '', netPts = '', labels = '';
+    stmts.forEach((s, i) => {
+      const cx = pL + i * gap + gap / 2;
+      const bh = Math.max(0, (s.revenue / maxV) * ch);
+      const by = pT + ch - bh;
+      bars += `<rect x="${(cx - bw / 2).toFixed(1)}" y="${by.toFixed(1)}" width="${bw.toFixed(1)}" height="${bh.toFixed(1)}" fill="rgba(79,195,247,.25)" rx="2"/>`;
+      const nh = Math.max(0, (Math.max(0, s.netIncome) / maxV) * ch);
+      const ny = pT + ch - nh;
+      netPts += `${i === 0 ? 'M' : 'L'}${cx.toFixed(1)},${ny.toFixed(1)} `;
+      const yr = s.date ? s.date.slice(0, 4) : '';
+      labels += `<text x="${cx.toFixed(1)}" y="${(H - 8).toFixed(1)}" text-anchor="middle" fill="#666" font-size="10">${yr}</text>`;
+    });
+
+    const legendRev = `<text x="${pL}" y="${pT - 3}" fill="#4fc3f7" font-size="9">▪ Revenue</text>`;
+    const legendNet = `<text x="${pL + 60}" y="${pT - 3}" fill="#4caf50" font-size="9">▪ Net Income</text>`;
+
+    return `<svg width="${W}" height="${H}" style="display:block">${legendRev}${legendNet}${bars}<path d="${netPts}" fill="none" stroke="#4caf50" stroke-width="2" stroke-linejoin="round"/>${labels}</svg>`;
+  }
+
+  // ── Detail drawer ──────────────────────────────────────────────────────────
+
+  function statCard(label, value, cls = '') {
+    return `<div class="stat-card"><div class="sc-label">${label}</div><div class="sc-value ${cls}">${value}</div></div>`;
+  }
+
+  function buildDetailHTML(row, profile, stmts, prices) {
+    const desc = profile?.description || '';
+    const short = desc.length > 300 ? desc.slice(0, 300).replace(/\s\S+$/, '') + '…' : desc;
+
+    let html = `<div class="dp-header">
+      <div>
+        <div class="dp-title">${row.name || row.symbol}</div>
+        <div class="dp-sub"><span class="sym">${row.symbol}</span><span class="tag">${row.sector || ''}</span></div>
+      </div>
+      <button class="dp-close" onclick="closeDetail()">&#x2715;</button>
+    </div>`;
+
+    if (short) html += `<div class="dp-desc">${short}</div>`;
+
+    if (prices && prices.length >= 2) {
+      html += `<div class="dp-section">Price — 90 days</div>
+        <div class="dp-chart">${makeSVG(prices, 368, 80)}</div>`;
+    }
+
+    html += `<div class="dp-section">Key Stats</div>
+    <div class="stat-grid">
+      ${statCard('Market Cap', fmtCap(row.marketCap))}
+      ${statCard('Score', row.score != null ? row.score : '—', row.score >= 70 ? 'good' : row.score >= 40 ? 'ok' : 'bad')}
+      ${statCard('Employees', profile?.fullTimeEmployees ? (+profile.fullTimeEmployees).toLocaleString() : '—')}
+      ${statCard('Exchange', profile?.exchangeShortName || '—')}
+      ${statCard('CEO', profile?.ceo || '—')}
+      ${statCard('Country', profile?.country || '—')}
+    </div>`;
+
+    if (profile?.website) {
+      html += `<div class="dp-link"><a href="${profile.website}" target="_blank">${profile.website}</a></div>`;
+    }
+
+    html += `<div class="dp-section">Screener Metrics</div>
+    <div class="stat-grid">
+      ${statCard('Rev Growth', fmtPct(row.revGrowth), row.revGrowth >= 0.3 ? 'good' : row.revGrowth >= 0.15 ? 'ok' : '')}
+      ${statCard('P/E vs Ind.', row.peRel != null ? fmt(row.peRel, 2) + 'x' : '—', row.peRel < 0.7 ? 'good' : row.peRel < 1 ? 'ok' : 'bad')}
+      ${statCard('P/E', row.pe != null ? fmt(row.pe) : '—')}
+      ${statCard('Ind. P/E', row.indPE != null ? fmt(row.indPE) : '—')}
+      ${statCard('Gross Margin', fmtPct(row.gross), row.gross >= 0.5 ? 'good' : row.gross >= 0.3 ? 'ok' : 'bad')}
+      ${statCard('Net Margin', fmtPct(row.net), row.net >= 0.2 ? 'good' : row.net >= 0.08 ? 'ok' : 'bad')}
+    </div>`;
+
+    if (stmts.length >= 2) {
+      html += `<div class="dp-section">Revenue History</div>
+        <div class="dp-chart">${revenueChart(stmts)}</div>`;
+    }
+
+    return html;
+  }
+
+  async function openDetail(symbol) {
+    const row = rows.find(r => r.symbol === symbol);
+    if (!row) return;
+
+    document.getElementById('detailBackdrop').style.display = 'block';
+    document.getElementById('detailPanel').classList.add('open');
+    document.getElementById('detailContent').innerHTML = '<div class="dp-loading">Loading…</div>';
+
+    try {
+      const key = apiKey;
+      const [profiles, stmts] = await Promise.all([
+        get(`${FMP}/profile/${symbol}?apikey=${key}`),
+        get(`${FMP}/income-statement/${symbol}?limit=5&apikey=${key}`)
+      ]);
+      const profile = Array.isArray(profiles) ? profiles[0] : profiles;
+      const statements = Array.isArray(stmts) ? [...stmts].reverse() : [];
+
+      let prices = row.priceHistory || null;
+      if (!prices) {
+        try {
+          const hist = await get(`${FMP}/historical-price-full/${symbol}?timeseries=90&apikey=${key}`);
+          if (hist.historical && hist.historical.length >= 2) {
+            prices = [...hist.historical].reverse().map(d => d.close);
+            row.priceHistory = prices;
+          }
+        } catch { /* ok */ }
+      }
+
+      document.getElementById('detailContent').innerHTML = buildDetailHTML(row, profile, statements, prices);
+    } catch (e) {
+      document.getElementById('detailContent').innerHTML =
+        `<div class="dp-header"><div class="dp-title">${symbol}</div><button class="dp-close" onclick="closeDetail()">&#x2715;</button></div>
+         <div style="padding:1rem;color:#ef9a9a;font-size:.82rem">${e.message}</div>`;
+    }
+  }
+
+  function closeDetail() {
+    document.getElementById('detailPanel').classList.remove('open');
+    document.getElementById('detailBackdrop').style.display = 'none';
+  }
+
+  function rowClick(event, symbol) {
+    if (event.target.closest('.star-btn')) return;
+    openDetail(symbol);
+  }
+
+  // ── Watchlist ──────────────────────────────────────────────────────────────
+
+  function toggleWatch(symbol) {
+    if (watchlist.has(symbol)) watchlist.delete(symbol);
+    else watchlist.add(symbol);
+    localStorage.setItem('watchlist', JSON.stringify([...watchlist]));
+    renderTable();
+    updateViewToggle();
+  }
+
+  function updateViewToggle() {
+    const n = rows.filter(r => watchlist.has(r.symbol)).length;
+    const btn = document.getElementById('btnWatch');
+    if (btn) btn.textContent = `★ Watchlist (${n})`;
+    const total = document.getElementById('btnAll');
+    if (total) total.textContent = `All (${rows.length})`;
+  }
+
+  function setView(mode) {
+    viewMode = mode;
+    document.getElementById('btnAll').classList.toggle('active', mode === 'all');
+    document.getElementById('btnWatch').classList.toggle('active', mode === 'watchlist');
+    sortAndRender();
+  }
+
+  function getDisplayRows() {
+    return viewMode === 'watchlist' ? rows.filter(r => watchlist.has(r.symbol)) : rows;
+  }
+
+  // ── Main screener ──────────────────────────────────────────────────────────
+
+  async function run() {
+    const key = document.getElementById('apiKey').value.trim();
+    if (!key) { showErr('Please enter your FMP API key.'); return; }
+    apiKey = key;
+
+    hideErr();
+    rows = [];
+    viewMode = 'all';
+    document.getElementById('runBtn').disabled = true;
+    document.getElementById('exportBtn').disabled = true;
+    document.getElementById('progressWrap').style.display = 'block';
+    document.getElementById('resultsArea').innerHTML = '';
+    document.getElementById('resultsCount').textContent = '';
+    document.getElementById('resultsTitle').textContent = 'Loading…';
+    document.getElementById('viewToggle').style.display = 'none';
+
+    const minCap       = +document.getElementById('minCap').value;
+    const sector       = document.getElementById('sector').value;
+    const limit        = +document.getElementById('limit').value;
+    const minRevGrowth = +document.getElementById('minRevGrowth').value / 100;
+    const maxPERatio   = +document.getElementById('maxPERatio').value;
+    const minGross     = +document.getElementById('minGross').value / 100;
+    const minNet       = +document.getElementById('minNet').value / 100;
+
+    try {
+      prog('Fetching sector P/E benchmarks…', 5);
+      let sectorPE = {};
+      try {
+        const peList = await get(`${FMP}/sector_price_earning_ratio?exchange=NYSE&apikey=${key}`);
+        const latest = {};
+        for (const item of peList) {
+          if (!latest[item.sector] || item.date > latest[item.sector].date) latest[item.sector] = item;
+        }
+        for (const [s, item] of Object.entries(latest)) sectorPE[s] = parseFloat(item.pe);
+      } catch (e) { console.warn('Sector P/E unavailable:', e.message); }
+
+      prog('Running initial screener…', 12);
+      let url = `${FMP}/stock-screener?marketCapMoreThan=${minCap}&isActivelyTrading=true&country=US&limit=${limit}&apikey=${key}`;
+      if (sector) url += `&sector=${encodeURIComponent(sector)}`;
+      const candidates = await get(url);
+      if (!Array.isArray(candidates) || !candidates.length)
+        throw new Error('No candidates returned — try a smaller market cap or different sector.');
+
+      const n = candidates.length;
+      for (let i = 0; i < n; i++) {
+        const s = candidates[i];
+        prog(`Analyzing ${s.symbol} (${i + 1}/${n})…`, 12 + (i / n) * 80);
+        try {
+          const [ratData, grwData] = await Promise.all([
+            get(`${FMP}/ratios/${s.symbol}?limit=1&apikey=${key}`),
+            get(`${FMP}/income-statement-growth/${s.symbol}?limit=1&apikey=${key}`)
+          ]);
+          const rat = ratData[0], grw = grwData[0];
+          if (!rat || !grw) continue;
+          const pe = rat.priceEarningsRatio, gross = rat.grossProfitMargin, net = rat.netProfitMargin;
+          const revGrowth = grw.growthRevenue;
+          const indPE = sectorPE[s.sector] ?? null;
+          const peRel = (pe > 0 && indPE) ? pe / indPE : null;
+          rows.push({ symbol: s.symbol, name: s.companyName, sector: s.sector,
+                      marketCap: s.marketCap, pe, indPE, peRel, gross, net, revGrowth,
+                      sparkline: null, priceHistory: null });
+        } catch { /* skip */ }
+        if (i < n - 1) await sleep(80);
+      }
+
+      prog('Scoring & filtering…', 96);
+      rows = rows.filter(s =>
+        s.revGrowth != null && s.revGrowth >= minRevGrowth &&
+        s.gross     != null && s.gross     >= minGross &&
+        s.net       != null && s.net       >= minNet &&
+        (s.pe == null || s.pe > 0) &&
+        (s.peRel == null || s.peRel <= maxPERatio)
+      );
+
+      computeScores(rows);
+      sortKey = 'score';
+      sortAsc = false;
+      sortAndRender();
+      document.getElementById('viewToggle').style.display = 'flex';
+      updateViewToggle();
+      prog('Done', 100);
+
+      fetchSparklines(); // background — no await
+
+    } catch (e) {
+      showErr(e.message);
+      document.getElementById('resultsTitle').textContent = 'Results';
+    } finally {
+      document.getElementById('runBtn').disabled = false;
+      setTimeout(() => document.getElementById('progressWrap').style.display = 'none', 2000);
+    }
+  }
+
+  // ── Table rendering ────────────────────────────────────────────────────────
+
+  const COLS = [
+    { key: 'watch',     label: '★',            noSort: true },
+    { key: 'symbol',    label: 'Ticker' },
+    { key: 'name',      label: 'Company' },
+    { key: 'sector',    label: 'Sector' },
+    { key: 'score',     label: 'Score' },
+    { key: 'marketCap', label: 'Mkt Cap' },
+    { key: 'revGrowth', label: 'Rev Growth' },
+    { key: 'pe',        label: 'P/E' },
+    { key: 'indPE',     label: 'Ind. P/E' },
+    { key: 'peRel',     label: 'P/E vs Ind.' },
+    { key: 'gross',     label: 'Gross Margin' },
+    { key: 'net',       label: 'Net Margin' },
+    { key: 'sparkline', label: '90d Price',    noSort: true },
+  ];
+
+  function sortAndRender() {
+    const display = getDisplayRows();
+    display.sort((a, b) => {
+      const av = a[sortKey] ?? (sortAsc ? Infinity : -Infinity);
+      const bv = b[sortKey] ?? (sortAsc ? Infinity : -Infinity);
+      return typeof av === 'string'
+        ? (sortAsc ? av.localeCompare(bv) : bv.localeCompare(av))
+        : (sortAsc ? av - bv : bv - av);
+    });
+    renderTable(display);
+  }
+
+  function renderTable(display) {
+    if (!display) display = getDisplayRows();
+    document.getElementById('resultsTitle').textContent = 'Results';
+    const area = document.getElementById('resultsArea');
+
+    if (!display.length) {
+      const msg = viewMode === 'watchlist'
+        ? 'No watchlisted stocks in current results. Star a stock to add it.'
+        : 'No stocks matched all criteria. Try loosening the thresholds.';
+      document.getElementById('resultsCount').textContent = '0 stocks matched';
+      area.innerHTML = `<div class="empty"><div class="icon">🔍</div><p>${msg}</p></div>`;
+      return;
+    }
+
+    document.getElementById('resultsCount').textContent =
+      `${display.length} stock${display.length !== 1 ? 's' : ''} matched`;
+    document.getElementById('exportBtn').disabled = false;
+
+    let html = '<div class="table-wrap"><table><thead><tr>';
+    for (const c of COLS) {
+      const active = sortKey === c.key ? ' active' : '';
+      const nsClass = c.noSort ? ' nosort' : '';
+      const arrow = !c.noSort && sortKey === c.key ? (sortAsc ? ' ↑' : ' ↓') : '';
+      const click = c.noSort ? '' : ` onclick="clickSort('${c.key}')"`;
+      html += `<th class="${active}${nsClass}"${click}>${c.label}${arrow}</th>`;
+    }
+    html += '</tr></thead><tbody>';
+
+    for (const s of display) {
+      const starred = watchlist.has(s.symbol);
+      const revCls = s.revGrowth >= 0.3 ? 'good' : s.revGrowth >= 0.15 ? 'ok' : '';
+      const peCls  = s.peRel != null ? (s.peRel < 0.7 ? 'good' : s.peRel < 1 ? 'ok' : 'bad') : '';
+      const grsCls = s.gross >= 0.5 ? 'good' : s.gross >= 0.3 ? 'ok' : 'bad';
+      const netCls = s.net   >= 0.2 ? 'good' : s.net   >= 0.08 ? 'ok' : 'bad';
+
+      html += `<tr class="data-row" data-sym="${s.symbol}" onclick="rowClick(event,'${s.symbol}')">
+        <td><button class="star-btn${starred ? ' starred' : ''}" onclick="toggleWatch('${s.symbol}')">${starred ? '★' : '☆'}</button></td>
+        <td class="sym">${s.symbol}</td>
+        <td>${s.name ?? '—'}</td>
+        <td><span class="tag">${s.sector || '—'}</span></td>
+        <td>${scoreBadge(s.score)}</td>
+        <td>${fmtCap(s.marketCap)}</td>
+        <td class="${revCls}">${fmtPct(s.revGrowth)}</td>
+        <td>${s.pe != null ? fmt(s.pe) : '—'}</td>
+        <td>${s.indPE != null ? fmt(s.indPE) : '—'}</td>
+        <td class="${peCls}">${s.peRel != null ? fmt(s.peRel, 2) + 'x' : '—'}</td>
+        <td class="${grsCls}">${fmtPct(s.gross)}</td>
+        <td class="${netCls}">${fmtPct(s.net)}</td>
+        <td class="td-spark">${s.sparkline || '<span style="color:var(--dim);font-size:.7rem">…</span>'}</td>
+      </tr>`;
+    }
+
+    html += '</tbody></table></div>';
+    area.innerHTML = html;
+  }
+
+  function clickSort(key) {
+    sortAsc = sortKey === key ? !sortAsc : false;
+    sortKey = key;
+    sortAndRender();
+  }
+
+  // ── Export ─────────────────────────────────────────────────────────────────
+
+  function exportCSV() {
+    if (!rows.length) return;
+    const hdr = 'Symbol,Company,Sector,Score,Market Cap,Rev Growth,P/E,Industry P/E,P/E vs Industry,Gross Margin,Net Margin';
+    const body = rows.map(s => [
+      s.symbol, `"${s.name}"`, `"${s.sector}"`, s.score ?? '',
+      s.marketCap,
+      s.revGrowth != null ? (s.revGrowth * 100).toFixed(1) + '%' : '',
+      s.pe  != null ? s.pe.toFixed(1)  : '',
+      s.indPE != null ? s.indPE.toFixed(1) : '',
+      s.peRel != null ? s.peRel.toFixed(2) : '',
+      s.gross != null ? (s.gross * 100).toFixed(1) + '%' : '',
+      s.net   != null ? (s.net   * 100).toFixed(1) + '%' : '',
+    ].join(',')).join('\n');
+    const a = Object.assign(document.createElement('a'), {
+      href: URL.createObjectURL(new Blob([hdr + '\n' + body], { type: 'text/csv' })),
+      download: 'screener-results.csv'
+    });
+    a.click();
+  }
+</script>
+</body>
+</html>
