@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Investment Strategy Agent</title>
+  <style>
+    :root {
+      --bg: #0f0f1a;
+      --panel: #1a1a2e;
+      --panel2: #16213e;
+      --text: #e0e0e0;
+      --dim: #888;
+      --accent: #4fc3f7;
+      --green: #4caf50;
+      --border: #2a2a4a;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: var(--bg); color: var(--text); font-family: system-ui, -apple-system, sans-serif; min-height: 100vh; display: flex; flex-direction: column; }
+
+    header {
+      background: var(--panel);
+      border-bottom: 1px solid var(--border);
+      padding: 2rem 2.5rem;
+      text-align: center;
+    }
+    header h1 { font-size: 2rem; color: var(--accent); letter-spacing: -.01em; }
+    header p { color: var(--dim); font-size: .95rem; margin-top: .5rem; max-width: 520px; margin-left: auto; margin-right: auto; line-height: 1.6; }
+
+    main {
+      flex: 1;
+      max-width: 800px;
+      margin: 3rem auto;
+      padding: 0 1.5rem;
+      width: 100%;
+    }
+
+    .section-title {
+      font-size: .7rem;
+      text-transform: uppercase;
+      letter-spacing: .1em;
+      color: var(--dim);
+      margin-bottom: 1rem;
+    }
+
+    .tools { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 1rem; }
+
+    .tool-card {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 1.5rem;
+      text-decoration: none;
+      color: inherit;
+      display: flex;
+      flex-direction: column;
+      gap: .6rem;
+      transition: border-color .15s, transform .15s;
+    }
+    .tool-card:hover { border-color: var(--accent); transform: translateY(-2px); }
+
+    .tool-icon { font-size: 1.8rem; }
+    .tool-name { font-size: 1.05rem; font-weight: 600; color: var(--accent); }
+    .tool-desc { font-size: .82rem; color: var(--dim); line-height: 1.55; }
+
+    .tool-tags { display: flex; flex-wrap: wrap; gap: .35rem; margin-top: .25rem; }
+    .tag {
+      display: inline-block;
+      padding: .12rem .45rem;
+      border-radius: 3px;
+      font-size: .68rem;
+      background: rgba(79,195,247,.1);
+      color: var(--accent);
+    }
+
+    .arrow { color: var(--dim); font-size: .85rem; margin-top: auto; padding-top: .5rem; }
+
+    footer { text-align: center; padding: 2rem; color: var(--dim); font-size: .78rem; border-top: 1px solid var(--border); }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>Investment Strategy Agent</h1>
+  <p>Tools for finding high-quality stocks — fast-growing revenue, low relative valuations, and wide margins.</p>
+</header>
+
+<main>
+  <div class="section-title">Tools</div>
+  <div class="tools">
+    <a class="tool-card" href="stock-screener.html">
+      <div class="tool-icon">📊</div>
+      <div class="tool-name">Stock Screener</div>
+      <div class="tool-desc">Screen the market for stocks with fast revenue growth, P/E ratios below their industry average, wide gross and net margins, and market caps above $2B.</div>
+      <div class="tool-tags">
+        <span class="tag">Revenue Growth</span>
+        <span class="tag">P/E vs Industry</span>
+        <span class="tag">Margins</span>
+        <span class="tag">Watchlist</span>
+        <span class="tag">Price Charts</span>
+      </div>
+      <div class="arrow">Open tool &rarr;</div>
+    </a>
+  </div>
+</main>
+
+<footer>
+  Powered by <a href="https://financialmodelingprep.com" target="_blank" style="color:var(--accent);text-decoration:none">Financial Modeling Prep</a>
+</footer>
+
+</body>
+</html>
