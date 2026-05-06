@@ -6,26 +6,18 @@
   <title>Stock Screener</title>
   <style>
     :root {
-      --bg: #0f0f1a;
-      --panel: #1a1a2e;
-      --panel2: #16213e;
-      --text: #e0e0e0;
-      --dim: #888;
-      --accent: #4fc3f7;
-      --green: #4caf50;
-      --red: #f44336;
-      --yellow: #ffc107;
-      --border: #2a2a4a;
+      --bg: #0f0f1a; --panel: #1a1a2e; --panel2: #16213e;
+      --text: #e0e0e0; --dim: #888; --accent: #4fc3f7;
+      --green: #4caf50; --red: #f44336; --yellow: #ffc107; --border: #2a2a4a;
     }
     * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { background: var(--bg); color: var(--text); font-family: system-ui, -apple-system, sans-serif; min-height: 100vh; }
+    body { background: var(--bg); color: var(--text); font-family: system-ui,-apple-system,sans-serif; min-height: 100vh; }
 
     header { background: var(--panel); border-bottom: 1px solid var(--border); padding: 1rem 2rem; }
     header h1 { font-size: 1.4rem; color: var(--accent); }
-    header p { color: var(--dim); font-size: 0.82rem; margin-top: 0.2rem; }
+    header p { color: var(--dim); font-size: .82rem; margin-top: .2rem; }
 
     .layout { display: grid; grid-template-columns: 280px 1fr; min-height: calc(100vh - 62px); }
-
     .sidebar { background: var(--panel); border-right: 1px solid var(--border); padding: 1.25rem; overflow-y: auto; }
     .main { padding: 1.5rem; overflow-x: auto; }
 
@@ -54,6 +46,8 @@
     .save-key-row input[type="checkbox"] { width: auto; accent-color: var(--accent); cursor: pointer; }
     .save-key-row label { font-size: .73rem; color: var(--dim); margin: 0; cursor: pointer; }
 
+    .universe-note { font-size: .72rem; color: var(--dim); background: var(--panel2); border: 1px solid var(--border); border-radius: 5px; padding: .5rem .7rem; margin-top: .5rem; line-height: 1.5; }
+
     #progressWrap { margin-top: 1rem; display: none; }
     .progress-bar { height: 3px; background: var(--border); border-radius: 2px; overflow: hidden; }
     .progress-fill { height: 100%; background: var(--accent); width: 0; transition: width .3s; }
@@ -66,6 +60,16 @@
     .results-bar h2 { font-size: .95rem; }
     #resultsCount { font-size: .8rem; color: var(--dim); }
     #viewToggle { display: none; gap: .35rem; }
+
+    .feed-bar { display: none; align-items: center; gap: .6rem; }
+    .feed-bar.visible { display: flex; }
+    #feedBtn { width: auto; margin-top: 0; padding: .28rem .75rem; font-size: .75rem; background: var(--panel2); color: var(--dim); border: 1px solid var(--border); border-radius: 999px; font-weight: 500; }
+    #feedBtn:hover { border-color: var(--green); color: var(--green); }
+    #feedBtn.active { background: rgba(76,175,80,.15); border-color: var(--green); color: var(--green); }
+    .feed-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--green); display: none; flex-shrink: 0; }
+    .feed-dot.on { display: inline-block; animation: pulse 1.4s ease-in-out infinite; }
+    #feedTime { font-size: .7rem; color: var(--dim); }
+    @keyframes pulse { 0%,100% { opacity:1;transform:scale(1); } 50% { opacity:.35;transform:scale(.75); } }
 
     .empty { text-align: center; padding: 4rem 2rem; color: var(--dim); }
     .empty .icon { font-size: 2.8rem; }
@@ -93,21 +97,11 @@
     .star-btn.starred { color: var(--yellow); }
     .star-btn:hover { opacity: 1; color: var(--yellow); }
 
-    .td-spark { min-width: 86px; }
-
     /* Detail drawer */
     #detailBackdrop { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.5); z-index: 100; }
-    #detailPanel {
-      position: fixed; right: 0; top: 0; width: 420px; height: 100vh;
-      background: var(--panel); border-left: 1px solid var(--border);
-      z-index: 101; transform: translateX(100%); transition: transform .25s ease;
-      overflow-y: auto; display: flex; flex-direction: column;
-    }
+    #detailPanel { position: fixed; right: 0; top: 0; width: 420px; height: 100vh; background: var(--panel); border-left: 1px solid var(--border); z-index: 101; transform: translateX(100%); transition: transform .25s ease; overflow-y: auto; display: flex; flex-direction: column; }
     #detailPanel.open { transform: translateX(0); }
-    .dp-header {
-      position: sticky; top: 0; background: var(--panel); border-bottom: 1px solid var(--border);
-      padding: 1rem 1.25rem; display: flex; justify-content: space-between; align-items: flex-start; z-index: 1;
-    }
+    .dp-header { position: sticky; top: 0; background: var(--panel); border-bottom: 1px solid var(--border); padding: 1rem 1.25rem; display: flex; justify-content: space-between; align-items: flex-start; z-index: 1; }
     .dp-title { font-size: 1rem; font-weight: 600; }
     .dp-sub { font-size: .78rem; color: var(--dim); margin-top: .25rem; display: flex; gap: .5rem; align-items: center; }
     .dp-close { background: none; border: none; color: var(--dim); font-size: 1.3rem; cursor: pointer; padding: 0; width: auto; margin: 0; line-height: 1; flex-shrink: 0; }
@@ -124,16 +118,6 @@
     .dp-link a:hover { text-decoration: underline; }
     .dp-loading { text-align: center; padding: 3rem; color: var(--dim); font-size: .85rem; }
 
-    .feed-bar { display: none; align-items: center; gap: .6rem; margin-top: .6rem; }
-    .feed-bar.visible { display: flex; }
-    #feedBtn { width: auto; margin-top: 0; padding: .28rem .75rem; font-size: .75rem; background: var(--panel2); color: var(--dim); border: 1px solid var(--border); border-radius: 999px; font-weight: 500; }
-    #feedBtn:hover { border-color: var(--green); color: var(--green); }
-    #feedBtn.active { background: rgba(76,175,80,.15); border-color: var(--green); color: var(--green); }
-    .feed-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--green); display: none; flex-shrink: 0; }
-    .feed-dot.on { display: inline-block; animation: pulse 1.4s ease-in-out infinite; }
-    #feedTime { font-size: .7rem; color: var(--dim); }
-    @keyframes pulse { 0%,100% { opacity: 1; transform: scale(1); } 50% { opacity: .35; transform: scale(.75); } }
-
     @media (max-width: 700px) {
       .layout { grid-template-columns: 1fr; }
       .sidebar { border-right: none; border-bottom: 1px solid var(--border); }
@@ -145,7 +129,7 @@
 
 <header>
   <h1>Stock Screener</h1>
-  <p>Fast revenue growth &middot; Low relative P/E &middot; Wide margins &middot; Market cap &gt; $2B</p>
+  <p>Fast revenue growth &middot; Low relative P/E &middot; Wide margins &middot; Large-cap US stocks</p>
 </header>
 
 <div class="layout">
@@ -157,18 +141,10 @@
       <input type="checkbox" id="saveKey" onchange="onSaveKeyToggle()">
       <label for="saveKey">Save key in this browser</label>
     </div>
-    <p class="api-note">Free at <a href="https://financialmodelingprep.com/developer/docs" target="_blank">financialmodelingprep.com</a> — 250 req/day. Each run uses ~2 req per stock scanned.</p>
+    <p class="api-note">Free at <a href="https://financialmodelingprep.com/developer/docs" target="_blank">financialmodelingprep.com</a> — 250 req/day.</p>
 
     <div class="group-title">Universe</div>
-    <label>Min Market Cap</label>
-    <select id="minCap">
-      <option value="2000000000">$2 B+</option>
-      <option value="10000000000">$10 B+</option>
-      <option value="50000000000">$50 B+</option>
-      <option value="100000000000">$100 B+</option>
-    </select>
-
-    <label>Sector (optional)</label>
+    <label>Sector</label>
     <select id="sector">
       <option value="">All Sectors</option>
       <option>Technology</option>
@@ -183,14 +159,7 @@
       <option>Utilities</option>
       <option>Industrials</option>
     </select>
-
-    <label>Stocks to scan</label>
-    <select id="limit">
-      <option value="25">25 (fastest)</option>
-      <option value="50" selected>50</option>
-      <option value="100">100</option>
-      <option value="200">200 (slow on free tier)</option>
-    </select>
+    <div class="universe-note" id="universeNote">Screening <strong id="universeCount">120</strong> large-cap US stocks</div>
 
     <div class="group-title">Criteria</div>
     <div class="two-col">
@@ -200,7 +169,7 @@
         <div class="unit">% year-over-year</div>
       </div>
       <div>
-        <label>Max P/E vs Industry</label>
+        <label>Max P/E vs Sector</label>
         <input type="number" id="maxPERatio" value="0.85" min="0.1" max="3" step="0.05">
         <div class="unit">ratio (1.0 = parity)</div>
       </div>
@@ -255,50 +224,117 @@
   </div>
 </div>
 
-<!-- Detail drawer -->
 <div id="detailBackdrop" onclick="closeDetail()"></div>
 <div id="detailPanel">
   <div id="detailContent"><div class="dp-loading">Loading…</div></div>
 </div>
 
 <script>
-  const FMP = 'https://financialmodelingprep.com/api/v3';
-  let rows = [];
-  let sortKey = 'score';
-  let sortAsc = false;
-  let viewMode = 'all';
-  let apiKey = '';
+  const STABLE = 'https://financialmodelingprep.com/stable';
+
+  // ── Stock universe (large-cap US, ~120 stocks) ─────────────────────────────
+  const UNIVERSE = [
+    // Technology
+    {s:'AAPL',n:'Apple',sec:'Technology'},{s:'MSFT',n:'Microsoft',sec:'Technology'},
+    {s:'NVDA',n:'NVIDIA',sec:'Technology'},{s:'GOOGL',n:'Alphabet',sec:'Technology'},
+    {s:'META',n:'Meta Platforms',sec:'Technology'},{s:'AVGO',n:'Broadcom',sec:'Technology'},
+    {s:'ORCL',n:'Oracle',sec:'Technology'},{s:'AMD',n:'AMD',sec:'Technology'},
+    {s:'QCOM',n:'Qualcomm',sec:'Technology'},{s:'TXN',n:'Texas Instruments',sec:'Technology'},
+    {s:'ADBE',n:'Adobe',sec:'Technology'},{s:'CRM',n:'Salesforce',sec:'Technology'},
+    {s:'NOW',n:'ServiceNow',sec:'Technology'},{s:'PANW',n:'Palo Alto Networks',sec:'Technology'},
+    {s:'CRWD',n:'CrowdStrike',sec:'Technology'},{s:'PLTR',n:'Palantir',sec:'Technology'},
+    {s:'SNOW',n:'Snowflake',sec:'Technology'},{s:'AMAT',n:'Applied Materials',sec:'Technology'},
+    {s:'KLAC',n:'KLA Corp',sec:'Technology'},{s:'LRCX',n:'Lam Research',sec:'Technology'},
+    {s:'MU',n:'Micron Technology',sec:'Technology'},{s:'CDNS',n:'Cadence Design',sec:'Technology'},
+    {s:'SNPS',n:'Synopsys',sec:'Technology'},{s:'IBM',n:'IBM',sec:'Technology'},
+    {s:'INTC',n:'Intel',sec:'Technology'},
+    // Healthcare
+    {s:'JNJ',n:'Johnson & Johnson',sec:'Healthcare'},{s:'UNH',n:'UnitedHealth',sec:'Healthcare'},
+    {s:'LLY',n:'Eli Lilly',sec:'Healthcare'},{s:'ABBV',n:'AbbVie',sec:'Healthcare'},
+    {s:'MRK',n:'Merck',sec:'Healthcare'},{s:'TMO',n:'Thermo Fisher',sec:'Healthcare'},
+    {s:'ABT',n:'Abbott Labs',sec:'Healthcare'},{s:'DHR',n:'Danaher',sec:'Healthcare'},
+    {s:'AMGN',n:'Amgen',sec:'Healthcare'},{s:'ISRG',n:'Intuitive Surgical',sec:'Healthcare'},
+    {s:'REGN',n:'Regeneron',sec:'Healthcare'},{s:'VRTX',n:'Vertex Pharma',sec:'Healthcare'},
+    {s:'BMY',n:'Bristol-Myers',sec:'Healthcare'},{s:'GILD',n:'Gilead Sciences',sec:'Healthcare'},
+    {s:'SYK',n:'Stryker',sec:'Healthcare'},
+    // Consumer Cyclical
+    {s:'AMZN',n:'Amazon',sec:'Consumer Cyclical'},{s:'TSLA',n:'Tesla',sec:'Consumer Cyclical'},
+    {s:'HD',n:'Home Depot',sec:'Consumer Cyclical'},{s:'MCD',n:"McDonald's",sec:'Consumer Cyclical'},
+    {s:'NKE',n:'Nike',sec:'Consumer Cyclical'},{s:'SBUX',n:'Starbucks',sec:'Consumer Cyclical'},
+    {s:'TJX',n:'TJX Companies',sec:'Consumer Cyclical'},{s:'LOW',n:"Lowe's",sec:'Consumer Cyclical'},
+    {s:'BKNG',n:'Booking Holdings',sec:'Consumer Cyclical'},{s:'MAR',n:'Marriott',sec:'Consumer Cyclical'},
+    {s:'HLT',n:'Hilton',sec:'Consumer Cyclical'},{s:'CMG',n:'Chipotle',sec:'Consumer Cyclical'},
+    {s:'LULU',n:'lululemon',sec:'Consumer Cyclical'},{s:'ROST',n:'Ross Stores',sec:'Consumer Cyclical'},
+    {s:'ABNB',n:'Airbnb',sec:'Consumer Cyclical'},
+    // Financial Services
+    {s:'JPM',n:'JPMorgan Chase',sec:'Financial Services'},{s:'BAC',n:'Bank of America',sec:'Financial Services'},
+    {s:'WFC',n:'Wells Fargo',sec:'Financial Services'},{s:'GS',n:'Goldman Sachs',sec:'Financial Services'},
+    {s:'MS',n:'Morgan Stanley',sec:'Financial Services'},{s:'BLK',n:'BlackRock',sec:'Financial Services'},
+    {s:'AXP',n:'American Express',sec:'Financial Services'},{s:'SCHW',n:'Charles Schwab',sec:'Financial Services'},
+    {s:'COF',n:'Capital One',sec:'Financial Services'},{s:'SPGI',n:'S&P Global',sec:'Financial Services'},
+    {s:'CME',n:'CME Group',sec:'Financial Services'},{s:'ICE',n:'Intercontinental Exchange',sec:'Financial Services'},
+    {s:'CB',n:'Chubb',sec:'Financial Services'},{s:'PGR',n:'Progressive',sec:'Financial Services'},
+    // Communication Services
+    {s:'NFLX',n:'Netflix',sec:'Communication Services'},{s:'DIS',n:'Walt Disney',sec:'Communication Services'},
+    {s:'CMCSA',n:'Comcast',sec:'Communication Services'},{s:'T',n:'AT&T',sec:'Communication Services'},
+    {s:'VZ',n:'Verizon',sec:'Communication Services'},{s:'TMUS',n:'T-Mobile',sec:'Communication Services'},
+    {s:'CHTR',n:'Charter Comm.',sec:'Communication Services'},
+    // Consumer Defensive
+    {s:'WMT',n:'Walmart',sec:'Consumer Defensive'},{s:'PG',n:'Procter & Gamble',sec:'Consumer Defensive'},
+    {s:'KO',n:'Coca-Cola',sec:'Consumer Defensive'},{s:'PEP',n:'PepsiCo',sec:'Consumer Defensive'},
+    {s:'COST',n:'Costco',sec:'Consumer Defensive'},{s:'PM',n:'Philip Morris',sec:'Consumer Defensive'},
+    {s:'MDLZ',n:'Mondelez',sec:'Consumer Defensive'},{s:'CL',n:'Colgate-Palmolive',sec:'Consumer Defensive'},
+    // Energy
+    {s:'XOM',n:'ExxonMobil',sec:'Energy'},{s:'CVX',n:'Chevron',sec:'Energy'},
+    {s:'COP',n:'ConocoPhillips',sec:'Energy'},{s:'EOG',n:'EOG Resources',sec:'Energy'},
+    {s:'SLB',n:'SLB',sec:'Energy'},{s:'MPC',n:'Marathon Petroleum',sec:'Energy'},
+    {s:'PSX',n:'Phillips 66',sec:'Energy'},{s:'OXY',n:'Occidental',sec:'Energy'},
+    // Industrials
+    {s:'UNP',n:'Union Pacific',sec:'Industrials'},{s:'HON',n:'Honeywell',sec:'Industrials'},
+    {s:'CAT',n:'Caterpillar',sec:'Industrials'},{s:'GE',n:'GE Aerospace',sec:'Industrials'},
+    {s:'RTX',n:'RTX Corp',sec:'Industrials'},{s:'LMT',n:'Lockheed Martin',sec:'Industrials'},
+    {s:'DE',n:'Deere & Co',sec:'Industrials'},{s:'BA',n:'Boeing',sec:'Industrials'},
+    {s:'UPS',n:'UPS',sec:'Industrials'},{s:'ETN',n:'Eaton',sec:'Industrials'},
+    {s:'WM',n:'Waste Management',sec:'Industrials'},{s:'ITW',n:'Illinois Tool Works',sec:'Industrials'},
+    // Basic Materials
+    {s:'LIN',n:'Linde',sec:'Basic Materials'},{s:'APD',n:'Air Products',sec:'Basic Materials'},
+    {s:'ECL',n:'Ecolab',sec:'Basic Materials'},{s:'SHW',n:'Sherwin-Williams',sec:'Basic Materials'},
+    {s:'FCX',n:'Freeport-McMoRan',sec:'Basic Materials'},{s:'NEM',n:'Newmont',sec:'Basic Materials'},
+    // Real Estate
+    {s:'AMT',n:'American Tower',sec:'Real Estate'},{s:'PLD',n:'Prologis',sec:'Real Estate'},
+    {s:'EQIX',n:'Equinix',sec:'Real Estate'},{s:'CCI',n:'Crown Castle',sec:'Real Estate'},
+    {s:'PSA',n:'Public Storage',sec:'Real Estate'},{s:'SPG',n:'Simon Property',sec:'Real Estate'},
+    // Utilities
+    {s:'NEE',n:'NextEra Energy',sec:'Utilities'},{s:'DUK',n:'Duke Energy',sec:'Utilities'},
+    {s:'SO',n:'Southern Co',sec:'Utilities'},{s:'AEP',n:'AEP',sec:'Utilities'},
+    {s:'EXC',n:'Exelon',sec:'Utilities'},
+  ];
+
+  // ── State ──────────────────────────────────────────────────────────────────
+  let rows = [], sortKey = 'score', sortAsc = false, viewMode = 'all', apiKey = '';
   let watchlist = new Set(JSON.parse(localStorage.getItem('watchlist') || '[]'));
-  let feedInterval = null;
-  let feedActive = false;
+  let feedInterval = null, feedActive = false, feedAbort = false;
 
   // ── API key persistence ────────────────────────────────────────────────────
-
   (function initKey() {
     const saved = localStorage.getItem('fmp_api_key');
-    if (saved) {
-      document.getElementById('apiKey').value = saved;
-      document.getElementById('saveKey').checked = true;
-    }
+    if (saved) { document.getElementById('apiKey').value = saved; document.getElementById('saveKey').checked = true; }
   })();
 
   function onSaveKeyToggle() {
     if (document.getElementById('saveKey').checked) {
       const k = document.getElementById('apiKey').value.trim();
       if (k) localStorage.setItem('fmp_api_key', k);
-    } else {
-      localStorage.removeItem('fmp_api_key');
-    }
+    } else { localStorage.removeItem('fmp_api_key'); }
   }
 
   // ── Utilities ──────────────────────────────────────────────────────────────
-
   async function get(url) {
     const r = await fetch(url);
-    if (!r.ok) throw new Error(`API ${r.status} — check your key`);
-    const data = await r.json();
-    if (data && data['Error Message']) throw new Error(data['Error Message']);
-    return data;
+    const d = await r.json();
+    if (d && d['Error Message']) throw new Error(d['Error Message']);
+    if (typeof d === 'string' && d.includes('subscription')) throw new Error('Subscription required');
+    return d;
   }
 
   const sleep = ms => new Promise(res => setTimeout(res, ms));
@@ -307,7 +343,6 @@
     document.getElementById('progressLabel').textContent = label;
     document.getElementById('progressFill').style.width = p + '%';
   }
-
   function showErr(msg) { const e = document.getElementById('errBox'); e.textContent = msg; e.style.display = 'block'; }
   function hideErr()    { document.getElementById('errBox').style.display = 'none'; }
 
@@ -315,13 +350,19 @@
   function fmtPct(n)      { return n == null || isNaN(n) ? '—' : (n * 100).toFixed(1) + '%'; }
   function fmtCap(n) {
     if (!n) return '—';
-    if (n >= 1e12) return '$' + (n / 1e12).toFixed(1) + 'T';
-    if (n >= 1e9)  return '$' + (n / 1e9).toFixed(1) + 'B';
-    return '$' + (n / 1e6).toFixed(0) + 'M';
+    if (n >= 1e12) return '$' + (n/1e12).toFixed(1) + 'T';
+    if (n >= 1e9)  return '$' + (n/1e9).toFixed(1) + 'B';
+    return '$' + (n/1e6).toFixed(0) + 'M';
   }
 
-  // ── Scoring ────────────────────────────────────────────────────────────────
+  // ── Sector filter UI ───────────────────────────────────────────────────────
+  document.getElementById('sector').addEventListener('change', function() {
+    const sec = this.value;
+    const n = sec ? UNIVERSE.filter(u => u.sec === sec).length : UNIVERSE.length;
+    document.getElementById('universeCount').textContent = n;
+  });
 
+  // ── Scoring ────────────────────────────────────────────────────────────────
   function computeScores(rows) {
     if (!rows.length) return;
     function norm(vals, invert = false) {
@@ -349,155 +390,130 @@
     return `<span class="score-badge ${cls}">${score}</span>`;
   }
 
-  // ── Sparklines ─────────────────────────────────────────────────────────────
-
-  function makeSVG(prices, w = 80, h = 28) {
-    if (!prices || prices.length < 2) return '';
-    const pad = 2, rng = (Math.max(...prices) - Math.min(...prices)) || 1, mn = Math.min(...prices);
-    const pts = prices.map((p, i) => {
-      const x = pad + (i / (prices.length - 1)) * (w - pad * 2);
-      const y = pad + (1 - (p - mn) / rng) * (h - pad * 2);
+  // ── Revenue sparkline from income statements ───────────────────────────────
+  function revSVG(revenues, w = 80, h = 28) {
+    if (!revenues || revenues.length < 2) return '<span style="color:var(--dim);font-size:.7rem">—</span>';
+    const pad = 2, mn = Math.min(...revenues), mx = Math.max(...revenues), rng = mx - mn || 1;
+    const pts = revenues.map((v, i) => {
+      const x = pad + (i / (revenues.length - 1)) * (w - pad * 2);
+      const y = pad + (1 - (v - mn) / rng) * (h - pad * 2);
       return `${x.toFixed(1)},${y.toFixed(1)}`;
     }).join(' ');
-    const color = prices[prices.length - 1] >= prices[0] ? '#4caf50' : '#f44336';
+    const color = revenues[revenues.length-1] >= revenues[0] ? '#4caf50' : '#f44336';
     return `<svg width="${w}" height="${h}" style="vertical-align:middle;display:block"><polyline points="${pts}" fill="none" stroke="${color}" stroke-width="1.5" stroke-linejoin="round"/></svg>`;
   }
 
-  async function fetchSparklines() {
-    const key = apiKey;
+  async function fetchRevSpark(key) {
     for (const row of rows) {
-      if (row.priceHistory) continue;
+      if (row.revenues) continue;
       try {
-        const data = await get(`${FMP}/historical-price-full/${row.symbol}?timeseries=90&apikey=${key}`);
-        if (data.historical && data.historical.length >= 2) {
-          const prices = [...data.historical].reverse().map(d => d.close);
-          row.priceHistory = prices;
-          row.sparkline = makeSVG(prices);
+        const data = await get(`${STABLE}/income-statement?symbol=${row.symbol}&limit=4&apikey=${key}`);
+        if (Array.isArray(data) && data.length >= 2) {
+          const revs = [...data].reverse().map(d => d.revenue || 0);
+          row.revenues = revs;
+          row.sparkline = revSVG(revs);
           const td = document.querySelector(`tr[data-sym="${row.symbol}"] .td-spark`);
-          if (td) td.innerHTML = row.sparkline || '<span style="color:var(--dim);font-size:.7rem">n/a</span>';
+          if (td) td.innerHTML = row.sparkline;
         }
       } catch { /* ignore */ }
-      await sleep(120);
+      await sleep(150);
     }
   }
 
   // ── Revenue bar chart (detail panel) ──────────────────────────────────────
-
   function revenueChart(stmts) {
-    if (!stmts.length) return '';
-    const W = 368, H = 110, pL = 8, pR = 8, pT = 12, pB = 28;
+    if (!stmts || stmts.length < 2) return '';
+    const W = 368, H = 110, pL = 8, pR = 8, pT = 16, pB = 28;
     const cw = W - pL - pR, ch = H - pT - pB;
     const revs = stmts.map(s => s.revenue || 0);
     const nets = stmts.map(s => s.netIncome || 0);
     const maxV = Math.max(...revs, 1);
-    const gap = cw / stmts.length;
-    const bw = gap * 0.55;
-
+    const gap = cw / stmts.length, bw = gap * 0.55;
     let bars = '', netPts = '', labels = '';
     stmts.forEach((s, i) => {
       const cx = pL + i * gap + gap / 2;
       const bh = Math.max(0, (s.revenue / maxV) * ch);
-      const by = pT + ch - bh;
-      bars += `<rect x="${(cx - bw / 2).toFixed(1)}" y="${by.toFixed(1)}" width="${bw.toFixed(1)}" height="${bh.toFixed(1)}" fill="rgba(79,195,247,.25)" rx="2"/>`;
+      bars += `<rect x="${(cx - bw/2).toFixed(1)}" y="${(pT + ch - bh).toFixed(1)}" width="${bw.toFixed(1)}" height="${bh.toFixed(1)}" fill="rgba(79,195,247,.25)" rx="2"/>`;
       const nh = Math.max(0, (Math.max(0, s.netIncome) / maxV) * ch);
-      const ny = pT + ch - nh;
-      netPts += `${i === 0 ? 'M' : 'L'}${cx.toFixed(1)},${ny.toFixed(1)} `;
-      const yr = s.date ? s.date.slice(0, 4) : '';
-      labels += `<text x="${cx.toFixed(1)}" y="${(H - 8).toFixed(1)}" text-anchor="middle" fill="#666" font-size="10">${yr}</text>`;
+      netPts += `${i === 0 ? 'M' : 'L'}${cx.toFixed(1)},${(pT + ch - nh).toFixed(1)} `;
+      labels += `<text x="${cx.toFixed(1)}" y="${(H-8).toFixed(1)}" text-anchor="middle" fill="#666" font-size="10">${s.date ? s.date.slice(0,4) : ''}</text>`;
     });
-
-    const legendRev = `<text x="${pL}" y="${pT - 3}" fill="#4fc3f7" font-size="9">▪ Revenue</text>`;
-    const legendNet = `<text x="${pL + 60}" y="${pT - 3}" fill="#4caf50" font-size="9">▪ Net Income</text>`;
-
-    return `<svg width="${W}" height="${H}" style="display:block">${legendRev}${legendNet}${bars}<path d="${netPts}" fill="none" stroke="#4caf50" stroke-width="2" stroke-linejoin="round"/>${labels}</svg>`;
+    return `<svg width="${W}" height="${H}" style="display:block">
+      <text x="${pL}" y="${pT-4}" fill="#4fc3f7" font-size="9">▪ Revenue</text>
+      <text x="${pL+60}" y="${pT-4}" fill="#4caf50" font-size="9">▪ Net Income</text>
+      ${bars}<path d="${netPts}" fill="none" stroke="#4caf50" stroke-width="2" stroke-linejoin="round"/>${labels}
+    </svg>`;
   }
 
   // ── Detail drawer ──────────────────────────────────────────────────────────
-
   function statCard(label, value, cls = '') {
     return `<div class="stat-card"><div class="sc-label">${label}</div><div class="sc-value ${cls}">${value}</div></div>`;
-  }
-
-  function buildDetailHTML(row, profile, stmts, prices) {
-    const desc = profile?.description || '';
-    const short = desc.length > 300 ? desc.slice(0, 300).replace(/\s\S+$/, '') + '…' : desc;
-
-    let html = `<div class="dp-header">
-      <div>
-        <div class="dp-title">${row.name || row.symbol}</div>
-        <div class="dp-sub"><span class="sym">${row.symbol}</span><span class="tag">${row.sector || ''}</span></div>
-      </div>
-      <button class="dp-close" onclick="closeDetail()">&#x2715;</button>
-    </div>`;
-
-    if (short) html += `<div class="dp-desc">${short}</div>`;
-
-    if (prices && prices.length >= 2) {
-      html += `<div class="dp-section">Price — 90 days</div>
-        <div class="dp-chart">${makeSVG(prices, 368, 80)}</div>`;
-    }
-
-    html += `<div class="dp-section">Key Stats</div>
-    <div class="stat-grid">
-      ${statCard('Market Cap', fmtCap(row.marketCap))}
-      ${statCard('Score', row.score != null ? row.score : '—', row.score >= 70 ? 'good' : row.score >= 40 ? 'ok' : 'bad')}
-      ${statCard('Employees', profile?.fullTimeEmployees ? (+profile.fullTimeEmployees).toLocaleString() : '—')}
-      ${statCard('Exchange', profile?.exchangeShortName || '—')}
-      ${statCard('CEO', profile?.ceo || '—')}
-      ${statCard('Country', profile?.country || '—')}
-    </div>`;
-
-    if (profile?.website) {
-      html += `<div class="dp-link"><a href="${profile.website}" target="_blank">${profile.website}</a></div>`;
-    }
-
-    html += `<div class="dp-section">Screener Metrics</div>
-    <div class="stat-grid">
-      ${statCard('Rev Growth', fmtPct(row.revGrowth), row.revGrowth >= 0.3 ? 'good' : row.revGrowth >= 0.15 ? 'ok' : '')}
-      ${statCard('P/E vs Ind.', row.peRel != null ? fmt(row.peRel, 2) + 'x' : '—', row.peRel < 0.7 ? 'good' : row.peRel < 1 ? 'ok' : 'bad')}
-      ${statCard('P/E', row.pe != null ? fmt(row.pe) : '—')}
-      ${statCard('Ind. P/E', row.indPE != null ? fmt(row.indPE) : '—')}
-      ${statCard('Gross Margin', fmtPct(row.gross), row.gross >= 0.5 ? 'good' : row.gross >= 0.3 ? 'ok' : 'bad')}
-      ${statCard('Net Margin', fmtPct(row.net), row.net >= 0.2 ? 'good' : row.net >= 0.08 ? 'ok' : 'bad')}
-    </div>`;
-
-    if (stmts.length >= 2) {
-      html += `<div class="dp-section">Revenue History</div>
-        <div class="dp-chart">${revenueChart(stmts)}</div>`;
-    }
-
-    return html;
   }
 
   async function openDetail(symbol) {
     const row = rows.find(r => r.symbol === symbol);
     if (!row) return;
-
     document.getElementById('detailBackdrop').style.display = 'block';
     document.getElementById('detailPanel').classList.add('open');
     document.getElementById('detailContent').innerHTML = '<div class="dp-loading">Loading…</div>';
 
     try {
       const key = apiKey;
-      const [profiles, stmts] = await Promise.all([
-        get(`${FMP}/profile/${symbol}?apikey=${key}`),
-        get(`${FMP}/income-statement/${symbol}?limit=5&apikey=${key}`)
+      const [stmts, metrics] = await Promise.all([
+        row.revenues
+          ? Promise.resolve(null)
+          : get(`${STABLE}/income-statement?symbol=${symbol}&limit=5&apikey=${key}`),
+        get(`${STABLE}/key-metrics?symbol=${symbol}&limit=1&apikey=${key}`)
       ]);
-      const profile = Array.isArray(profiles) ? profiles[0] : profiles;
-      const statements = Array.isArray(stmts) ? [...stmts].reverse() : [];
 
-      let prices = row.priceHistory || null;
-      if (!prices) {
-        try {
-          const hist = await get(`${FMP}/historical-price-full/${symbol}?timeseries=90&apikey=${key}`);
-          if (hist.historical && hist.historical.length >= 2) {
-            prices = [...hist.historical].reverse().map(d => d.close);
-            row.priceHistory = prices;
-          }
-        } catch { /* ok */ }
+      if (stmts && Array.isArray(stmts) && stmts.length >= 2) {
+        row.revenues = [...stmts].reverse().map(d => d.revenue || 0);
+        row.incomeStmts = [...stmts].reverse();
       }
 
-      document.getElementById('detailContent').innerHTML = buildDetailHTML(row, profile, statements, prices);
+      const km = Array.isArray(metrics) ? metrics[0] : null;
+      const price = row.price ?? (km?.marketCap && row.marketCap ? null : null);
+
+      let html = `<div class="dp-header">
+        <div>
+          <div class="dp-title">${row.name}</div>
+          <div class="dp-sub"><span class="sym">${row.symbol}</span><span class="tag">${row.sector}</span></div>
+        </div>
+        <button class="dp-close" onclick="closeDetail()">&#x2715;</button>
+      </div>`;
+
+      html += `<div class="dp-section">Screener Metrics</div>
+      <div class="stat-grid">
+        ${statCard('Score', row.score != null ? row.score : '—', row.score >= 70 ? 'good' : row.score >= 40 ? 'ok' : 'bad')}
+        ${statCard('Rev Growth', fmtPct(row.revGrowth), row.revGrowth >= 0.3 ? 'good' : row.revGrowth >= 0.15 ? 'ok' : '')}
+        ${statCard('Gross Margin', fmtPct(row.gross), row.gross >= 0.5 ? 'good' : row.gross >= 0.3 ? 'ok' : 'bad')}
+        ${statCard('Net Margin', fmtPct(row.net), row.net >= 0.2 ? 'good' : row.net >= 0.08 ? 'ok' : 'bad')}
+        ${statCard('P/E', row.pe != null ? fmt(row.pe) : '—')}
+        ${statCard('P/E vs Sector', row.peRel != null ? fmt(row.peRel, 2) + 'x' : '—', row.peRel < 0.7 ? 'good' : row.peRel < 1 ? 'ok' : 'bad')}
+        ${statCard('Sector Avg P/E', row.indPE != null ? fmt(row.indPE) : '—')}
+        ${row.price != null ? statCard('Price', '$' + row.price.toFixed(2)) : ''}
+        ${row.dayChange != null ? statCard('Day Chg%', (row.dayChange > 0 ? '+' : '') + row.dayChange.toFixed(2) + '%', row.dayChange > 0 ? 'good' : 'bad') : ''}
+        ${km?.marketCap ? statCard('Mkt Cap', fmtCap(km.marketCap)) : ''}
+      </div>`;
+
+      if (km) {
+        html += `<div class="dp-section">Key Metrics</div>
+        <div class="stat-grid">
+          ${km.revenuePerShare ? statCard('Rev / Share', '$' + (+km.revenuePerShare).toFixed(2)) : ''}
+          ${km.earningsYield ? statCard('Earnings Yield', fmtPct(km.earningsYield)) : ''}
+          ${km.dividendYield ? statCard('Div Yield', fmtPct(km.dividendYield)) : ''}
+          ${km.debtToEquity ? statCard('Debt / Equity', fmt(km.debtToEquity, 2)) : ''}
+          ${km.returnOnEquity ? statCard('ROE', fmtPct(km.returnOnEquity)) : ''}
+          ${km.returnOnAssets ? statCard('ROA', fmtPct(km.returnOnAssets)) : ''}
+        </div>`;
+      }
+
+      if (row.incomeStmts && row.incomeStmts.length >= 2) {
+        html += `<div class="dp-section">Revenue History</div>
+          <div class="dp-chart">${revenueChart(row.incomeStmts)}</div>`;
+      }
+
+      document.getElementById('detailContent').innerHTML = html;
     } catch (e) {
       document.getElementById('detailContent').innerHTML =
         `<div class="dp-header"><div class="dp-title">${symbol}</div><button class="dp-close" onclick="closeDetail()">&#x2715;</button></div>
@@ -516,21 +532,18 @@
   }
 
   // ── Watchlist ──────────────────────────────────────────────────────────────
-
   function toggleWatch(symbol) {
-    if (watchlist.has(symbol)) watchlist.delete(symbol);
-    else watchlist.add(symbol);
+    if (watchlist.has(symbol)) watchlist.delete(symbol); else watchlist.add(symbol);
     localStorage.setItem('watchlist', JSON.stringify([...watchlist]));
-    renderTable();
-    updateViewToggle();
+    renderTable(); updateViewToggle();
   }
 
   function updateViewToggle() {
     const n = rows.filter(r => watchlist.has(r.symbol)).length;
-    const btn = document.getElementById('btnWatch');
-    if (btn) btn.textContent = `★ Watchlist (${n})`;
-    const total = document.getElementById('btnAll');
-    if (total) total.textContent = `All (${rows.length})`;
+    const bw = document.getElementById('btnWatch');
+    if (bw) bw.textContent = `★ Watchlist (${n})`;
+    const ba = document.getElementById('btnAll');
+    if (ba) ba.textContent = `All (${rows.length})`;
   }
 
   function setView(mode) {
@@ -544,8 +557,56 @@
     return viewMode === 'watchlist' ? rows.filter(r => watchlist.has(r.symbol)) : rows;
   }
 
-  // ── Main screener ──────────────────────────────────────────────────────────
+  // ── Live feed ──────────────────────────────────────────────────────────────
+  async function pollQuotes() {
+    const key = apiKey;
+    feedAbort = false;
+    for (const row of rows) {
+      if (feedAbort) return;
+      try {
+        const data = await get(`${STABLE}/quote?symbol=${row.symbol}&apikey=${key}`);
+        const q = Array.isArray(data) ? data[0] : null;
+        if (!q) continue;
+        row.price = q.price;
+        row.dayChange = q.changePercentage;
+        const tr = document.querySelector(`tr[data-sym="${row.symbol}"]`);
+        if (!tr) continue;
+        const priceTd = tr.querySelector('.td-price');
+        const changeTd = tr.querySelector('.td-change');
+        if (priceTd) priceTd.textContent = q.price != null ? '$' + q.price.toFixed(2) : '—';
+        if (changeTd) {
+          const v = q.changePercentage;
+          const cls = v > 0 ? 'good' : v < 0 ? 'bad' : '';
+          changeTd.innerHTML = v != null ? `<span class="${cls}">${v > 0 ? '+' : ''}${v.toFixed(2)}%</span>` : '—';
+        }
+      } catch { /* ignore */ }
+      await sleep(300);
+    }
+    const el = document.getElementById('feedTime');
+    if (el) el.textContent = new Date().toLocaleTimeString();
+  }
 
+  function startFeed() {
+    feedActive = true;
+    document.getElementById('feedBtn').textContent = '⏹ Stop Feed';
+    document.getElementById('feedBtn').classList.add('active');
+    document.getElementById('feedDot').classList.add('on');
+    pollQuotes();
+    feedInterval = setInterval(pollQuotes, 60000);
+  }
+
+  function stopFeed() {
+    feedActive = false; feedAbort = true;
+    clearInterval(feedInterval); feedInterval = null;
+    document.getElementById('feedBtn').textContent = '● Live Feed';
+    document.getElementById('feedBtn').classList.remove('active');
+    document.getElementById('feedDot').classList.remove('on');
+    document.getElementById('feedTime').textContent = '';
+  }
+
+  function toggleFeed() { if (feedActive) stopFeed(); else startFeed(); }
+
+  // ── Main screener ──────────────────────────────────────────────────────────
   async function run() {
     const key = document.getElementById('apiKey').value.trim();
     if (!key) { showErr('Please enter your FMP API key.'); return; }
@@ -554,8 +615,7 @@
 
     hideErr();
     if (feedActive) stopFeed();
-    rows = [];
-    viewMode = 'all';
+    rows = []; viewMode = 'all';
     document.getElementById('runBtn').disabled = true;
     document.getElementById('exportBtn').disabled = true;
     document.getElementById('progressWrap').style.display = 'block';
@@ -565,57 +625,61 @@
     document.getElementById('viewToggle').style.display = 'none';
     document.getElementById('feedBar').classList.remove('visible');
 
-    const minCap       = +document.getElementById('minCap').value;
     const sector       = document.getElementById('sector').value;
-    const limit        = +document.getElementById('limit').value;
     const minRevGrowth = +document.getElementById('minRevGrowth').value / 100;
     const maxPERatio   = +document.getElementById('maxPERatio').value;
     const minGross     = +document.getElementById('minGross').value / 100;
     const minNet       = +document.getElementById('minNet').value / 100;
 
+    const universe = sector ? UNIVERSE.filter(u => u.sec === sector) : UNIVERSE;
+    const n = universe.length;
+    const allFetched = [];
+
     try {
-      prog('Fetching sector P/E benchmarks…', 5);
-      let sectorPE = {};
-      try {
-        const peList = await get(`${FMP}/sector_price_earning_ratio?exchange=NYSE&apikey=${key}`);
-        const latest = {};
-        for (const item of peList) {
-          if (!latest[item.sector] || item.date > latest[item.sector].date) latest[item.sector] = item;
-        }
-        for (const [s, item] of Object.entries(latest)) sectorPE[s] = parseFloat(item.pe);
-      } catch (e) { console.warn('Sector P/E unavailable:', e.message); }
-
-      prog('Running initial screener…', 12);
-      let url = `${FMP}/stock-screener?marketCapMoreThan=${minCap}&isActivelyTrading=true&country=US&limit=${limit}&apikey=${key}`;
-      if (sector) url += `&sector=${encodeURIComponent(sector)}`;
-      const candidates = await get(url);
-      if (!Array.isArray(candidates) || !candidates.length)
-        throw new Error('No candidates returned — try a smaller market cap or different sector.');
-
-      const n = candidates.length;
       for (let i = 0; i < n; i++) {
-        const s = candidates[i];
-        prog(`Analyzing ${s.symbol} (${i + 1}/${n})…`, 12 + (i / n) * 80);
+        const u = universe[i];
+        prog(`Analyzing ${u.s} (${i+1}/${n})…`, (i / n) * 90);
         try {
           const [ratData, grwData] = await Promise.all([
-            get(`${FMP}/ratios/${s.symbol}?limit=1&apikey=${key}`),
-            get(`${FMP}/income-statement-growth/${s.symbol}?limit=1&apikey=${key}`)
+            get(`${STABLE}/ratios?symbol=${u.s}&limit=1&apikey=${key}`),
+            get(`${STABLE}/income-statement-growth?symbol=${u.s}&limit=1&apikey=${key}`)
           ]);
-          const rat = ratData[0], grw = grwData[0];
+          const rat = Array.isArray(ratData) ? ratData[0] : null;
+          const grw = Array.isArray(grwData) ? grwData[0] : null;
           if (!rat || !grw) continue;
-          const pe = rat.priceEarningsRatio, gross = rat.grossProfitMargin, net = rat.netProfitMargin;
-          const revGrowth = grw.growthRevenue;
-          const indPE = sectorPE[s.sector] ?? null;
-          const peRel = (pe > 0 && indPE) ? pe / indPE : null;
-          rows.push({ symbol: s.symbol, name: s.companyName, sector: s.sector,
-                      marketCap: s.marketCap, pe, indPE, peRel, gross, net, revGrowth,
-                      price: null, dayChange: null, sparkline: null, priceHistory: null });
+          allFetched.push({
+            symbol: u.s, name: u.n, sector: u.sec,
+            pe: rat.priceEarningsRatio,
+            gross: rat.grossProfitMargin,
+            net: rat.netProfitMargin,
+            revGrowth: grw.growthRevenue,
+            price: null, dayChange: null, sparkline: null, revenues: null, incomeStmts: null
+          });
         } catch { /* skip */ }
-        if (i < n - 1) await sleep(80);
+        await sleep(80);
       }
 
-      prog('Scoring & filtering…', 96);
-      rows = rows.filter(s =>
+      prog('Computing sector averages…', 92);
+
+      // Compute sector P/E from fetched data
+      const sectorBuckets = {};
+      for (const d of allFetched) {
+        if (d.pe > 0 && d.pe < 500) {
+          if (!sectorBuckets[d.sector]) sectorBuckets[d.sector] = [];
+          sectorBuckets[d.sector].push(d.pe);
+        }
+      }
+      const sectorPE = {};
+      for (const [sec, pes] of Object.entries(sectorBuckets)) {
+        sectorPE[sec] = pes.reduce((a,b) => a+b, 0) / pes.length;
+      }
+      for (const d of allFetched) {
+        d.indPE = sectorPE[d.sector] ?? null;
+        d.peRel = (d.pe > 0 && d.indPE) ? d.pe / d.indPE : null;
+      }
+
+      prog('Filtering…', 96);
+      rows = allFetched.filter(s =>
         s.revGrowth != null && s.revGrowth >= minRevGrowth &&
         s.gross     != null && s.gross     >= minGross &&
         s.net       != null && s.net       >= minNet &&
@@ -624,15 +688,14 @@
       );
 
       computeScores(rows);
-      sortKey = 'score';
-      sortAsc = false;
+      sortKey = 'score'; sortAsc = false;
       sortAndRender();
       document.getElementById('viewToggle').style.display = 'flex';
       document.getElementById('feedBar').classList.add('visible');
       updateViewToggle();
       prog('Done', 100);
 
-      fetchSparklines(); // background — no await
+      fetchRevSpark(key); // background
 
     } catch (e) {
       showErr(e.message);
@@ -643,73 +706,22 @@
     }
   }
 
-  // ── Live feed ──────────────────────────────────────────────────────────────
-
-  async function pollQuotes() {
-    if (!rows.length || !apiKey) return;
-    const syms = rows.map(r => r.symbol).join(',');
-    try {
-      const quotes = await get(`${FMP}/quote/${syms}?apikey=${apiKey}`);
-      for (const q of quotes) {
-        const row = rows.find(r => r.symbol === q.symbol);
-        if (row) { row.price = q.price; row.dayChange = q.changesPercentage; }
-        const tr = document.querySelector(`tr[data-sym="${q.symbol}"]`);
-        if (!tr) continue;
-        const priceTd  = tr.querySelector('.td-price');
-        const changeTd = tr.querySelector('.td-change');
-        if (priceTd) priceTd.textContent = q.price != null ? '$' + q.price.toFixed(2) : '—';
-        if (changeTd) {
-          const v = q.changesPercentage;
-          const cls = v > 0 ? 'good' : v < 0 ? 'bad' : '';
-          changeTd.innerHTML = v != null ? `<span class="${cls}">${v > 0 ? '+' : ''}${v.toFixed(2)}%</span>` : '—';
-        }
-      }
-      const el = document.getElementById('feedTime');
-      if (el) el.textContent = new Date().toLocaleTimeString();
-    } catch (e) { console.warn('Quote poll error:', e.message); }
-  }
-
-  function startFeed() {
-    feedActive = true;
-    document.getElementById('feedBtn').textContent = '⏹ Stop Feed';
-    document.getElementById('feedBtn').classList.add('active');
-    document.getElementById('feedDot').classList.add('on');
-    pollQuotes();
-    feedInterval = setInterval(pollQuotes, 15000);
-  }
-
-  function stopFeed() {
-    feedActive = false;
-    clearInterval(feedInterval);
-    feedInterval = null;
-    document.getElementById('feedBtn').textContent = '● Live Feed';
-    document.getElementById('feedBtn').classList.remove('active');
-    document.getElementById('feedDot').classList.remove('on');
-    document.getElementById('feedTime').textContent = '';
-  }
-
-  function toggleFeed() {
-    if (feedActive) stopFeed(); else startFeed();
-  }
-
   // ── Table rendering ────────────────────────────────────────────────────────
-
   const COLS = [
-    { key: 'watch',     label: '★',            noSort: true },
+    { key: 'watch',     label: '★',           noSort: true },
     { key: 'symbol',    label: 'Ticker' },
     { key: 'name',      label: 'Company' },
     { key: 'sector',    label: 'Sector' },
     { key: 'price',     label: 'Price' },
     { key: 'dayChange', label: 'Day Chg%' },
     { key: 'score',     label: 'Score' },
-    { key: 'marketCap', label: 'Mkt Cap' },
     { key: 'revGrowth', label: 'Rev Growth' },
     { key: 'pe',        label: 'P/E' },
-    { key: 'indPE',     label: 'Ind. P/E' },
-    { key: 'peRel',     label: 'P/E vs Ind.' },
+    { key: 'indPE',     label: 'Sector P/E' },
+    { key: 'peRel',     label: 'P/E vs Sec.' },
     { key: 'gross',     label: 'Gross Margin' },
     { key: 'net',       label: 'Net Margin' },
-    { key: 'sparkline', label: '90d Price',    noSort: true },
+    { key: 'sparkline', label: 'Rev Trend',   noSort: true },
   ];
 
   function sortAndRender() {
@@ -731,7 +743,7 @@
 
     if (!display.length) {
       const msg = viewMode === 'watchlist'
-        ? 'No watchlisted stocks in current results. Star a stock to add it.'
+        ? 'No watchlisted stocks in current results.'
         : 'No stocks matched all criteria. Try loosening the thresholds.';
       document.getElementById('resultsCount').textContent = '0 stocks matched';
       area.innerHTML = `<div class="empty"><div class="icon">🔍</div><p>${msg}</p></div>`;
@@ -745,32 +757,31 @@
     let html = '<div class="table-wrap"><table><thead><tr>';
     for (const c of COLS) {
       const active = sortKey === c.key ? ' active' : '';
-      const nsClass = c.noSort ? ' nosort' : '';
-      const arrow = !c.noSort && sortKey === c.key ? (sortAsc ? ' ↑' : ' ↓') : '';
-      const click = c.noSort ? '' : ` onclick="clickSort('${c.key}')"`;
-      html += `<th class="${active}${nsClass}"${click}>${c.label}${arrow}</th>`;
+      const ns     = c.noSort ? ' nosort' : '';
+      const arrow  = !c.noSort && sortKey === c.key ? (sortAsc ? ' ↑' : ' ↓') : '';
+      const click  = c.noSort ? '' : ` onclick="clickSort('${c.key}')"`;
+      html += `<th class="${active}${ns}"${click}>${c.label}${arrow}</th>`;
     }
     html += '</tr></thead><tbody>';
 
     for (const s of display) {
-      const starred = watchlist.has(s.symbol);
-      const revCls = s.revGrowth >= 0.3 ? 'good' : s.revGrowth >= 0.15 ? 'ok' : '';
-      const peCls  = s.peRel != null ? (s.peRel < 0.7 ? 'good' : s.peRel < 1 ? 'ok' : 'bad') : '';
-      const grsCls = s.gross >= 0.5 ? 'good' : s.gross >= 0.3 ? 'ok' : 'bad';
-      const netCls = s.net   >= 0.2 ? 'good' : s.net   >= 0.08 ? 'ok' : 'bad';
-
-      const chgCls = s.dayChange > 0 ? 'good' : s.dayChange < 0 ? 'bad' : '';
-      const chgTxt = s.dayChange != null
+      const starred  = watchlist.has(s.symbol);
+      const revCls   = s.revGrowth >= 0.3 ? 'good' : s.revGrowth >= 0.15 ? 'ok' : '';
+      const peCls    = s.peRel != null ? (s.peRel < 0.7 ? 'good' : s.peRel < 1 ? 'ok' : 'bad') : '';
+      const grsCls   = s.gross >= 0.5 ? 'good' : s.gross >= 0.3 ? 'ok' : 'bad';
+      const netCls   = s.net   >= 0.2 ? 'good' : s.net   >= 0.08 ? 'ok' : 'bad';
+      const chgCls   = s.dayChange > 0 ? 'good' : s.dayChange < 0 ? 'bad' : '';
+      const chgTxt   = s.dayChange != null
         ? `<span class="${chgCls}">${s.dayChange > 0 ? '+' : ''}${s.dayChange.toFixed(2)}%</span>` : '—';
+
       html += `<tr class="data-row" data-sym="${s.symbol}" onclick="rowClick(event,'${s.symbol}')">
         <td><button class="star-btn${starred ? ' starred' : ''}" onclick="toggleWatch('${s.symbol}')">${starred ? '★' : '☆'}</button></td>
         <td class="sym">${s.symbol}</td>
-        <td>${s.name ?? '—'}</td>
-        <td><span class="tag">${s.sector || '—'}</span></td>
-        <td class="td-price">${s.price != null ? '$' + s.price.toFixed(2) : '<span style="color:var(--dim);font-size:.7rem">—</span>'}</td>
+        <td>${s.name}</td>
+        <td><span class="tag">${s.sector}</span></td>
+        <td class="td-price">${s.price != null ? '$' + s.price.toFixed(2) : '<span style="color:var(--dim)">—</span>'}</td>
         <td class="td-change">${chgTxt}</td>
         <td>${scoreBadge(s.score)}</td>
-        <td>${fmtCap(s.marketCap)}</td>
         <td class="${revCls}">${fmtPct(s.revGrowth)}</td>
         <td>${s.pe != null ? fmt(s.pe) : '—'}</td>
         <td>${s.indPE != null ? fmt(s.indPE) : '—'}</td>
@@ -792,22 +803,22 @@
   }
 
   // ── Export ─────────────────────────────────────────────────────────────────
-
   function exportCSV() {
     if (!rows.length) return;
-    const hdr = 'Symbol,Company,Sector,Score,Market Cap,Rev Growth,P/E,Industry P/E,P/E vs Industry,Gross Margin,Net Margin';
+    const hdr = 'Symbol,Company,Sector,Score,Price,Day Chg%,Rev Growth,P/E,Sector P/E,P/E vs Sector,Gross Margin,Net Margin';
     const body = rows.map(s => [
       s.symbol, `"${s.name}"`, `"${s.sector}"`, s.score ?? '',
-      s.marketCap,
-      s.revGrowth != null ? (s.revGrowth * 100).toFixed(1) + '%' : '',
+      s.price != null ? s.price.toFixed(2) : '',
+      s.dayChange != null ? s.dayChange.toFixed(2) + '%' : '',
+      s.revGrowth != null ? (s.revGrowth*100).toFixed(1) + '%' : '',
       s.pe  != null ? s.pe.toFixed(1)  : '',
       s.indPE != null ? s.indPE.toFixed(1) : '',
       s.peRel != null ? s.peRel.toFixed(2) : '',
-      s.gross != null ? (s.gross * 100).toFixed(1) + '%' : '',
-      s.net   != null ? (s.net   * 100).toFixed(1) + '%' : '',
+      s.gross != null ? (s.gross*100).toFixed(1) + '%' : '',
+      s.net   != null ? (s.net*100).toFixed(1)   + '%' : '',
     ].join(',')).join('\n');
     const a = Object.assign(document.createElement('a'), {
-      href: URL.createObjectURL(new Blob([hdr + '\n' + body], { type: 'text/csv' })),
+      href: URL.createObjectURL(new Blob([hdr+'\n'+body], {type:'text/csv'})),
       download: 'screener-results.csv'
     });
     a.click();
