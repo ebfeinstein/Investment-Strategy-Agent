@@ -144,8 +144,18 @@
     <p class="api-note">Free at <a href="https://financialmodelingprep.com/developer/docs" target="_blank">financialmodelingprep.com</a> — 250 req/day.</p>
 
     <div class="group-title">Universe</div>
+    <label>Min Revenue</label>
+    <select id="minRev" onchange="updateUniverseCount()">
+      <option value="0">Any</option>
+      <option value="1">$1 B+</option>
+      <option value="5" selected>$5 B+</option>
+      <option value="10">$10 B+</option>
+      <option value="25">$25 B+</option>
+      <option value="50">$50 B+</option>
+      <option value="100">$100 B+</option>
+    </select>
     <label>Sector</label>
-    <select id="sector">
+    <select id="sector" onchange="updateUniverseCount()">
       <option value="">All Sectors</option>
       <option>Technology</option>
       <option>Healthcare</option>
@@ -159,7 +169,7 @@
       <option>Utilities</option>
       <option>Industrials</option>
     </select>
-    <div class="universe-note" id="universeNote">Screening <strong id="universeCount">120</strong> large-cap US stocks</div>
+    <div class="universe-note" id="universeNote">Screening <strong id="universeCount">0</strong> stocks &mdash; ~<strong id="apiEstimate">0</strong> API calls</div>
 
     <div class="group-title">Criteria</div>
     <div class="two-col">
@@ -232,82 +242,151 @@
 <script>
   const STABLE = 'https://financialmodelingprep.com/stable';
 
-  // ── Stock universe (large-cap US, ~120 stocks) ─────────────────────────────
+  // ── Stock universe (~300 large-cap US stocks, rev in $B) ───────────────────
+  // rev = approximate latest annual revenue in USD billions
   const UNIVERSE = [
     // Technology
-    {s:'AAPL',n:'Apple',sec:'Technology'},{s:'MSFT',n:'Microsoft',sec:'Technology'},
-    {s:'NVDA',n:'NVIDIA',sec:'Technology'},{s:'GOOGL',n:'Alphabet',sec:'Technology'},
-    {s:'META',n:'Meta Platforms',sec:'Technology'},{s:'AVGO',n:'Broadcom',sec:'Technology'},
-    {s:'ORCL',n:'Oracle',sec:'Technology'},{s:'AMD',n:'AMD',sec:'Technology'},
-    {s:'QCOM',n:'Qualcomm',sec:'Technology'},{s:'TXN',n:'Texas Instruments',sec:'Technology'},
-    {s:'ADBE',n:'Adobe',sec:'Technology'},{s:'CRM',n:'Salesforce',sec:'Technology'},
-    {s:'NOW',n:'ServiceNow',sec:'Technology'},{s:'PANW',n:'Palo Alto Networks',sec:'Technology'},
-    {s:'CRWD',n:'CrowdStrike',sec:'Technology'},{s:'PLTR',n:'Palantir',sec:'Technology'},
-    {s:'SNOW',n:'Snowflake',sec:'Technology'},{s:'AMAT',n:'Applied Materials',sec:'Technology'},
-    {s:'KLAC',n:'KLA Corp',sec:'Technology'},{s:'LRCX',n:'Lam Research',sec:'Technology'},
-    {s:'MU',n:'Micron Technology',sec:'Technology'},{s:'CDNS',n:'Cadence Design',sec:'Technology'},
-    {s:'SNPS',n:'Synopsys',sec:'Technology'},{s:'IBM',n:'IBM',sec:'Technology'},
-    {s:'INTC',n:'Intel',sec:'Technology'},
+    {s:'AAPL',n:'Apple',sec:'Technology',rev:391},{s:'MSFT',n:'Microsoft',sec:'Technology',rev:245},
+    {s:'GOOGL',n:'Alphabet',sec:'Technology',rev:350},{s:'META',n:'Meta Platforms',sec:'Technology',rev:165},
+    {s:'NVDA',n:'NVIDIA',sec:'Technology',rev:130},{s:'AVGO',n:'Broadcom',sec:'Technology',rev:51},
+    {s:'ORCL',n:'Oracle',sec:'Technology',rev:57},{s:'IBM',n:'IBM',sec:'Technology',rev:63},
+    {s:'CSCO',n:'Cisco',sec:'Technology',rev:57},{s:'INTC',n:'Intel',sec:'Technology',rev:54},
+    {s:'HPQ',n:'HP Inc',sec:'Technology',rev:54},{s:'HPE',n:'HP Enterprise',sec:'Technology',rev:32},
+    {s:'DELL',n:'Dell Technologies',sec:'Technology',rev:93},{s:'ACN',n:'Accenture',sec:'Technology',rev:65},
+    {s:'AMD',n:'AMD',sec:'Technology',rev:25},{s:'QCOM',n:'Qualcomm',sec:'Technology',rev:39},
+    {s:'TXN',n:'Texas Instruments',sec:'Technology',rev:18},{s:'AMAT',n:'Applied Materials',sec:'Technology',rev:27},
+    {s:'ADBE',n:'Adobe',sec:'Technology',rev:21},{s:'CRM',n:'Salesforce',sec:'Technology',rev:38},
+    {s:'NOW',n:'ServiceNow',sec:'Technology',rev:11},{s:'PANW',n:'Palo Alto Networks',sec:'Technology',rev:8},
+    {s:'MU',n:'Micron Technology',sec:'Technology',rev:25},{s:'KLAC',n:'KLA Corp',sec:'Technology',rev:10},
+    {s:'LRCX',n:'Lam Research',sec:'Technology',rev:15},{s:'CDNS',n:'Cadence Design',sec:'Technology',rev:5},
+    {s:'SNPS',n:'Synopsys',sec:'Technology',rev:6},{s:'CRWD',n:'CrowdStrike',sec:'Technology',rev:4},
+    {s:'PLTR',n:'Palantir',sec:'Technology',rev:3},{s:'SNOW',n:'Snowflake',sec:'Technology',rev:4},
+    {s:'GLW',n:'Corning',sec:'Technology',rev:13},{s:'NTAP',n:'NetApp',sec:'Technology',rev:7},
+    {s:'STX',n:'Seagate',sec:'Technology',rev:8},{s:'WDC',n:'Western Digital',sec:'Technology',rev:13},
+    {s:'KEYS',n:'Keysight',sec:'Technology',rev:5},{s:'MRVL',n:'Marvell Technology',sec:'Technology',rev:6},
     // Healthcare
-    {s:'JNJ',n:'Johnson & Johnson',sec:'Healthcare'},{s:'UNH',n:'UnitedHealth',sec:'Healthcare'},
-    {s:'LLY',n:'Eli Lilly',sec:'Healthcare'},{s:'ABBV',n:'AbbVie',sec:'Healthcare'},
-    {s:'MRK',n:'Merck',sec:'Healthcare'},{s:'TMO',n:'Thermo Fisher',sec:'Healthcare'},
-    {s:'ABT',n:'Abbott Labs',sec:'Healthcare'},{s:'DHR',n:'Danaher',sec:'Healthcare'},
-    {s:'AMGN',n:'Amgen',sec:'Healthcare'},{s:'ISRG',n:'Intuitive Surgical',sec:'Healthcare'},
-    {s:'REGN',n:'Regeneron',sec:'Healthcare'},{s:'VRTX',n:'Vertex Pharma',sec:'Healthcare'},
-    {s:'BMY',n:'Bristol-Myers',sec:'Healthcare'},{s:'GILD',n:'Gilead Sciences',sec:'Healthcare'},
-    {s:'SYK',n:'Stryker',sec:'Healthcare'},
+    {s:'UNH',n:'UnitedHealth',sec:'Healthcare',rev:372},{s:'CVS',n:'CVS Health',sec:'Healthcare',rev:357},
+    {s:'MCK',n:'McKesson',sec:'Healthcare',rev:309},{s:'ABC',n:'AmerisourceBergen',sec:'Healthcare',rev:270},
+    {s:'CAH',n:'Cardinal Health',sec:'Healthcare',rev:185},{s:'CI',n:'Cigna',sec:'Healthcare',rev:235},
+    {s:'ELV',n:'Elevance Health',sec:'Healthcare',rev:175},{s:'HUM',n:'Humana',sec:'Healthcare',rev:115},
+    {s:'CNC',n:'Centene',sec:'Healthcare',rev:186},{s:'MOH',n:'Molina Healthcare',sec:'Healthcare',rev:40},
+    {s:'HCA',n:'HCA Healthcare',sec:'Healthcare',rev:70},{s:'JNJ',n:'Johnson & Johnson',sec:'Healthcare',rev:89},
+    {s:'MRK',n:'Merck',sec:'Healthcare',rev:63},{s:'PFE',n:'Pfizer',sec:'Healthcare',rev:63},
+    {s:'ABBV',n:'AbbVie',sec:'Healthcare',rev:56},{s:'LLY',n:'Eli Lilly',sec:'Healthcare',rev:45},
+    {s:'TMO',n:'Thermo Fisher',sec:'Healthcare',rev:43},{s:'ABT',n:'Abbott Labs',sec:'Healthcare',rev:22},
+    {s:'DHR',n:'Danaher',sec:'Healthcare',rev:24},{s:'BMY',n:'Bristol-Myers',sec:'Healthcare',rev:47},
+    {s:'AMGN',n:'Amgen',sec:'Healthcare',rev:33},{s:'GILD',n:'Gilead Sciences',sec:'Healthcare',rev:28},
+    {s:'ISRG',n:'Intuitive Surgical',sec:'Healthcare',rev:8},{s:'REGN',n:'Regeneron',sec:'Healthcare',rev:14},
+    {s:'VRTX',n:'Vertex Pharma',sec:'Healthcare',rev:11},{s:'SYK',n:'Stryker',sec:'Healthcare',rev:22},
+    {s:'MDT',n:'Medtronic',sec:'Healthcare',rev:32},{s:'BSX',n:'Boston Scientific',sec:'Healthcare',rev:16},
+    {s:'BDX',n:'Becton Dickinson',sec:'Healthcare',rev:20},{s:'BAX',n:'Baxter',sec:'Healthcare',rev:11},
+    {s:'ZBH',n:'Zimmer Biomet',sec:'Healthcare',rev:8},{s:'EW',n:'Edwards Lifesciences',sec:'Healthcare',rev:7},
+    {s:'IQV',n:'IQVIA',sec:'Healthcare',rev:15},{s:'BIIB',n:'Biogen',sec:'Healthcare',rev:10},
+    {s:'ZTS',n:'Zoetis',sec:'Healthcare',rev:9},{s:'IDXX',n:'IDEXX Labs',sec:'Healthcare',rev:4},
     // Consumer Cyclical
-    {s:'AMZN',n:'Amazon',sec:'Consumer Cyclical'},{s:'TSLA',n:'Tesla',sec:'Consumer Cyclical'},
-    {s:'HD',n:'Home Depot',sec:'Consumer Cyclical'},{s:'MCD',n:"McDonald's",sec:'Consumer Cyclical'},
-    {s:'NKE',n:'Nike',sec:'Consumer Cyclical'},{s:'SBUX',n:'Starbucks',sec:'Consumer Cyclical'},
-    {s:'TJX',n:'TJX Companies',sec:'Consumer Cyclical'},{s:'LOW',n:"Lowe's",sec:'Consumer Cyclical'},
-    {s:'BKNG',n:'Booking Holdings',sec:'Consumer Cyclical'},{s:'MAR',n:'Marriott',sec:'Consumer Cyclical'},
-    {s:'HLT',n:'Hilton',sec:'Consumer Cyclical'},{s:'CMG',n:'Chipotle',sec:'Consumer Cyclical'},
-    {s:'LULU',n:'lululemon',sec:'Consumer Cyclical'},{s:'ROST',n:'Ross Stores',sec:'Consumer Cyclical'},
-    {s:'ABNB',n:'Airbnb',sec:'Consumer Cyclical'},
+    {s:'AMZN',n:'Amazon',sec:'Consumer Cyclical',rev:590},{s:'TGT',n:'Target',sec:'Consumer Cyclical',rev:110},
+    {s:'GM',n:'General Motors',sec:'Consumer Cyclical',rev:187},{s:'F',n:'Ford Motor',sec:'Consumer Cyclical',rev:185},
+    {s:'HD',n:'Home Depot',sec:'Consumer Cyclical',rev:158},{s:'LOW',n:"Lowe's",sec:'Consumer Cyclical',rev:87},
+    {s:'TSLA',n:'Tesla',sec:'Consumer Cyclical',rev:98},{s:'NKE',n:'Nike',sec:'Consumer Cyclical',rev:52},
+    {s:'TJX',n:'TJX Companies',sec:'Consumer Cyclical',rev:54},{s:'ROST',n:'Ross Stores',sec:'Consumer Cyclical',rev:21},
+    {s:'SBUX',n:'Starbucks',sec:'Consumer Cyclical',rev:36},{s:'MCD',n:"McDonald's",sec:'Consumer Cyclical',rev:25},
+    {s:'CMG',n:'Chipotle',sec:'Consumer Cyclical',rev:11},{s:'YUM',n:'Yum! Brands',sec:'Consumer Cyclical',rev:7},
+    {s:'DRI',n:'Darden Restaurants',sec:'Consumer Cyclical',rev:11},{s:'BKNG',n:'Booking Holdings',sec:'Consumer Cyclical',rev:23},
+    {s:'MAR',n:'Marriott',sec:'Consumer Cyclical',rev:25},{s:'HLT',n:'Hilton',sec:'Consumer Cyclical',rev:11},
+    {s:'RCL',n:'Royal Caribbean',sec:'Consumer Cyclical',rev:15},{s:'CCL',n:'Carnival',sec:'Consumer Cyclical',rev:23},
+    {s:'LULU',n:'lululemon',sec:'Consumer Cyclical',rev:10},{s:'ABNB',n:'Airbnb',sec:'Consumer Cyclical',rev:11},
+    {s:'EBAY',n:'eBay',sec:'Consumer Cyclical',rev:10},{s:'APTV',n:'Aptiv',sec:'Consumer Cyclical',rev:22},
+    {s:'BWA',n:'BorgWarner',sec:'Consumer Cyclical',rev:14},{s:'LEA',n:'Lear Corp',sec:'Consumer Cyclical',rev:23},
+    {s:'PHM',n:'PulteGroup',sec:'Consumer Cyclical',rev:17},{s:'LEN',n:'Lennar',sec:'Consumer Cyclical',rev:33},
+    {s:'DHI',n:'D.R. Horton',sec:'Consumer Cyclical',rev:36},{s:'NVR',n:'NVR Inc',sec:'Consumer Cyclical',rev:10},
     // Financial Services
-    {s:'JPM',n:'JPMorgan Chase',sec:'Financial Services'},{s:'BAC',n:'Bank of America',sec:'Financial Services'},
-    {s:'WFC',n:'Wells Fargo',sec:'Financial Services'},{s:'GS',n:'Goldman Sachs',sec:'Financial Services'},
-    {s:'MS',n:'Morgan Stanley',sec:'Financial Services'},{s:'BLK',n:'BlackRock',sec:'Financial Services'},
-    {s:'AXP',n:'American Express',sec:'Financial Services'},{s:'SCHW',n:'Charles Schwab',sec:'Financial Services'},
-    {s:'COF',n:'Capital One',sec:'Financial Services'},{s:'SPGI',n:'S&P Global',sec:'Financial Services'},
-    {s:'CME',n:'CME Group',sec:'Financial Services'},{s:'ICE',n:'Intercontinental Exchange',sec:'Financial Services'},
-    {s:'CB',n:'Chubb',sec:'Financial Services'},{s:'PGR',n:'Progressive',sec:'Financial Services'},
+    {s:'JPM',n:'JPMorgan Chase',sec:'Financial Services',rev:162},{s:'BAC',n:'Bank of America',sec:'Financial Services',rev:98},
+    {s:'WFC',n:'Wells Fargo',sec:'Financial Services',rev:81},{s:'C',n:'Citigroup',sec:'Financial Services',rev:69},
+    {s:'GS',n:'Goldman Sachs',sec:'Financial Services',rev:46},{s:'MS',n:'Morgan Stanley',sec:'Financial Services',rev:58},
+    {s:'USB',n:'U.S. Bancorp',sec:'Financial Services',rev:26},{s:'TFC',n:'Truist Financial',sec:'Financial Services',rev:23},
+    {s:'PNC',n:'PNC Financial',sec:'Financial Services',rev:21},{s:'COF',n:'Capital One',sec:'Financial Services',rev:37},
+    {s:'AXP',n:'American Express',sec:'Financial Services',rev:65},{s:'DFS',n:'Discover Financial',sec:'Financial Services',rev:15},
+    {s:'SYF',n:'Synchrony Financial',sec:'Financial Services',rev:6},{s:'SCHW',n:'Charles Schwab',sec:'Financial Services',rev:18},
+    {s:'BLK',n:'BlackRock',sec:'Financial Services',rev:20},{s:'SPGI',n:'S&P Global',sec:'Financial Services',rev:14},
+    {s:'MCO',n:'Moody\'s',sec:'Financial Services',rev:6},{s:'CME',n:'CME Group',sec:'Financial Services',rev:6},
+    {s:'ICE',n:'Intercontinental Exch.',sec:'Financial Services',rev:8},{s:'CB',n:'Chubb',sec:'Financial Services',rev:56},
+    {s:'PGR',n:'Progressive',sec:'Financial Services',rev:60},{s:'MET',n:'MetLife',sec:'Financial Services',rev:70},
+    {s:'PRU',n:'Prudential Financial',sec:'Financial Services',rev:65},{s:'AFL',n:'Aflac',sec:'Financial Services',rev:24},
+    {s:'AIG',n:'AIG',sec:'Financial Services',rev:46},{s:'ALL',n:'Allstate',sec:'Financial Services',rev:51},
+    {s:'TRV',n:'Travelers',sec:'Financial Services',rev:46},{s:'HIG',n:'Hartford Financial',sec:'Financial Services',rev:25},
+    {s:'BK',n:'Bank of NY Mellon',sec:'Financial Services',rev:18},{s:'STT',n:'State Street',sec:'Financial Services',rev:12},
+    {s:'RF',n:'Regions Financial',sec:'Financial Services',rev:8},{s:'HBAN',n:'Huntington Bancshares',sec:'Financial Services',rev:7},
+    {s:'CFG',n:'Citizens Financial',sec:'Financial Services',rev:8},{s:'KEY',n:'KeyCorp',sec:'Financial Services',rev:7},
+    {s:'ALLY',n:'Ally Financial',sec:'Financial Services',rev:8},{s:'V',n:'Visa',sec:'Financial Services',rev:35},
+    {s:'MA',n:'Mastercard',sec:'Financial Services',rev:25},{s:'PYPL',n:'PayPal',sec:'Financial Services',rev:31},
+    {s:'FIS',n:'Fidelity National Info',sec:'Financial Services',rev:10},{s:'FISV',n:'Fiserv',sec:'Financial Services',rev:20},
     // Communication Services
-    {s:'NFLX',n:'Netflix',sec:'Communication Services'},{s:'DIS',n:'Walt Disney',sec:'Communication Services'},
-    {s:'CMCSA',n:'Comcast',sec:'Communication Services'},{s:'T',n:'AT&T',sec:'Communication Services'},
-    {s:'VZ',n:'Verizon',sec:'Communication Services'},{s:'TMUS',n:'T-Mobile',sec:'Communication Services'},
-    {s:'CHTR',n:'Charter Comm.',sec:'Communication Services'},
+    {s:'GOOGL',n:'Alphabet (Comm.)',sec:'Communication Services',rev:350},{s:'META',n:'Meta (Comm.)',sec:'Communication Services',rev:165},
+    {s:'NFLX',n:'Netflix',sec:'Communication Services',rev:39},{s:'DIS',n:'Walt Disney',sec:'Communication Services',rev:88},
+    {s:'CMCSA',n:'Comcast',sec:'Communication Services',rev:121},{s:'T',n:'AT&T',sec:'Communication Services',rev:122},
+    {s:'VZ',n:'Verizon',sec:'Communication Services',rev:134},{s:'TMUS',n:'T-Mobile',sec:'Communication Services',rev:77},
+    {s:'CHTR',n:'Charter Comm.',sec:'Communication Services',rev:55},{s:'WBD',n:'Warner Bros. Discovery',sec:'Communication Services',rev:41},
+    {s:'FOXA',n:'Fox Corp',sec:'Communication Services',rev:14},{s:'PARA',n:'Paramount Global',sec:'Communication Services',rev:28},
     // Consumer Defensive
-    {s:'WMT',n:'Walmart',sec:'Consumer Defensive'},{s:'PG',n:'Procter & Gamble',sec:'Consumer Defensive'},
-    {s:'KO',n:'Coca-Cola',sec:'Consumer Defensive'},{s:'PEP',n:'PepsiCo',sec:'Consumer Defensive'},
-    {s:'COST',n:'Costco',sec:'Consumer Defensive'},{s:'PM',n:'Philip Morris',sec:'Consumer Defensive'},
-    {s:'MDLZ',n:'Mondelez',sec:'Consumer Defensive'},{s:'CL',n:'Colgate-Palmolive',sec:'Consumer Defensive'},
+    {s:'WMT',n:'Walmart',sec:'Consumer Defensive',rev:648},{s:'COST',n:'Costco',sec:'Consumer Defensive',rev:232},
+    {s:'KR',n:'Kroger',sec:'Consumer Defensive',rev:150},{s:'PG',n:'Procter & Gamble',sec:'Consumer Defensive',rev:84},
+    {s:'PEP',n:'PepsiCo',sec:'Consumer Defensive',rev:91},{s:'KO',n:'Coca-Cola',sec:'Consumer Defensive',rev:46},
+    {s:'PM',n:'Philip Morris',sec:'Consumer Defensive',rev:35},{s:'MO',n:'Altria',sec:'Consumer Defensive',rev:25},
+    {s:'MDLZ',n:'Mondelez',sec:'Consumer Defensive',rev:37},{s:'TSN',n:'Tyson Foods',sec:'Consumer Defensive',rev:53},
+    {s:'CL',n:'Colgate-Palmolive',sec:'Consumer Defensive',rev:20},{s:'GIS',n:'General Mills',sec:'Consumer Defensive',rev:19},
+    {s:'K',n:'Kellanova',sec:'Consumer Defensive',rev:16},{s:'CAG',n:'Conagra Brands',sec:'Consumer Defensive',rev:12},
+    {s:'HRL',n:'Hormel Foods',sec:'Consumer Defensive',rev:12},{s:'CPB',n:'Campbell Soup',sec:'Consumer Defensive',rev:9},
+    {s:'SJM',n:'J.M. Smucker',sec:'Consumer Defensive',rev:8},{s:'HSY',n:'Hershey',sec:'Consumer Defensive',rev:10},
+    {s:'MKC',n:'McCormick',sec:'Consumer Defensive',rev:7},
     // Energy
-    {s:'XOM',n:'ExxonMobil',sec:'Energy'},{s:'CVX',n:'Chevron',sec:'Energy'},
-    {s:'COP',n:'ConocoPhillips',sec:'Energy'},{s:'EOG',n:'EOG Resources',sec:'Energy'},
-    {s:'SLB',n:'SLB',sec:'Energy'},{s:'MPC',n:'Marathon Petroleum',sec:'Energy'},
-    {s:'PSX',n:'Phillips 66',sec:'Energy'},{s:'OXY',n:'Occidental',sec:'Energy'},
+    {s:'XOM',n:'ExxonMobil',sec:'Energy',rev:400},{s:'CVX',n:'Chevron',sec:'Energy',rev:200},
+    {s:'MPC',n:'Marathon Petroleum',sec:'Energy',rev:185},{s:'PSX',n:'Phillips 66',sec:'Energy',rev:153},
+    {s:'VLO',n:'Valero Energy',sec:'Energy',rev:140},{s:'COP',n:'ConocoPhillips',sec:'Energy',rev:58},
+    {s:'SLB',n:'SLB',sec:'Energy',rev:36},{s:'EOG',n:'EOG Resources',sec:'Energy',rev:23},
+    {s:'OXY',n:'Occidental',sec:'Energy',rev:28},{s:'HAL',n:'Halliburton',sec:'Energy',rev:23},
+    {s:'BKR',n:'Baker Hughes',sec:'Energy',rev:26},{s:'DVN',n:'Devon Energy',sec:'Energy',rev:16},
+    {s:'HES',n:'Hess',sec:'Energy',rev:13},{s:'APA',n:'APA Corp',sec:'Energy',rev:8},
+    {s:'MRO',n:'Marathon Oil',sec:'Energy',rev:6},
     // Industrials
-    {s:'UNP',n:'Union Pacific',sec:'Industrials'},{s:'HON',n:'Honeywell',sec:'Industrials'},
-    {s:'CAT',n:'Caterpillar',sec:'Industrials'},{s:'GE',n:'GE Aerospace',sec:'Industrials'},
-    {s:'RTX',n:'RTX Corp',sec:'Industrials'},{s:'LMT',n:'Lockheed Martin',sec:'Industrials'},
-    {s:'DE',n:'Deere & Co',sec:'Industrials'},{s:'BA',n:'Boeing',sec:'Industrials'},
-    {s:'UPS',n:'UPS',sec:'Industrials'},{s:'ETN',n:'Eaton',sec:'Industrials'},
-    {s:'WM',n:'Waste Management',sec:'Industrials'},{s:'ITW',n:'Illinois Tool Works',sec:'Industrials'},
+    {s:'UPS',n:'UPS',sec:'Industrials',rev:91},{s:'FDX',n:'FedEx',sec:'Industrials',rev:87},
+    {s:'RTX',n:'RTX Corp',sec:'Industrials',rev:79},{s:'LMT',n:'Lockheed Martin',sec:'Industrials',rev:71},
+    {s:'BA',n:'Boeing',sec:'Industrials',rev:66},{s:'CAT',n:'Caterpillar',sec:'Industrials',rev:65},
+    {s:'DE',n:'Deere & Co',sec:'Industrials',rev:52},{s:'GD',n:'General Dynamics',sec:'Industrials',rev:48},
+    {s:'NOC',n:'Northrop Grumman',sec:'Industrials',rev:40},{s:'HON',n:'Honeywell',sec:'Industrials',rev:37},
+    {s:'MMM',n:'3M',sec:'Industrials',rev:33},{s:'GE',n:'GE Aerospace',sec:'Industrials',rev:32},
+    {s:'UNP',n:'Union Pacific',sec:'Industrials',rev:24},{s:'ETN',n:'Eaton',sec:'Industrials',rev:25},
+    {s:'CARR',n:'Carrier Global',sec:'Industrials',rev:24},{s:'CHRW',n:'C.H. Robinson',sec:'Industrials',rev:18},
+    {s:'JBHT',n:'J.B. Hunt Transport',sec:'Industrials',rev:12},{s:'CSX',n:'CSX Corp',sec:'Industrials',rev:15},
+    {s:'NSC',n:'Norfolk Southern',sec:'Industrials',rev:13},{s:'WM',n:'Waste Management',sec:'Industrials',rev:21},
+    {s:'RSG',n:'Republic Services',sec:'Industrials',rev:16},{s:'CTAS',n:'Cintas',sec:'Industrials',rev:10},
+    {s:'PH',n:'Parker Hannifin',sec:'Industrials',rev:21},{s:'EMR',n:'Emerson Electric',sec:'Industrials',rev:19},
+    {s:'ITW',n:'Illinois Tool Works',sec:'Industrials',rev:16},{s:'ETN',n:'Eaton',sec:'Industrials',rev:25},
+    {s:'ROK',n:'Rockwell Automation',sec:'Industrials',rev:9},{s:'XYL',n:'Xylem',sec:'Industrials',rev:8},
+    {s:'OTIS',n:'Otis Worldwide',sec:'Industrials',rev:15},{s:'HII',n:'Huntington Ingalls',sec:'Industrials',rev:11},
+    {s:'L3H',n:'L3Harris Technologies',sec:'Industrials',rev:21},{s:'TDG',n:'TransDigm',sec:'Industrials',rev:7},
+    {s:'EXPD',n:'Expeditors Intl',sec:'Industrials',rev:9},
     // Basic Materials
-    {s:'LIN',n:'Linde',sec:'Basic Materials'},{s:'APD',n:'Air Products',sec:'Basic Materials'},
-    {s:'ECL',n:'Ecolab',sec:'Basic Materials'},{s:'SHW',n:'Sherwin-Williams',sec:'Basic Materials'},
-    {s:'FCX',n:'Freeport-McMoRan',sec:'Basic Materials'},{s:'NEM',n:'Newmont',sec:'Basic Materials'},
+    {s:'DOW',n:'Dow Inc',sec:'Basic Materials',rev:45},{s:'LIN',n:'Linde',sec:'Basic Materials',rev:33},
+    {s:'NUE',n:'Nucor',sec:'Basic Materials',rev:29},{s:'PPG',n:'PPG Industries',sec:'Basic Materials',rev:18},
+    {s:'SHW',n:'Sherwin-Williams',sec:'Basic Materials',rev:24},{s:'FCX',n:'Freeport-McMoRan',sec:'Basic Materials',rev:22},
+    {s:'NEM',n:'Newmont',sec:'Basic Materials',rev:19},{s:'DD',n:'DuPont',sec:'Basic Materials',rev:13},
+    {s:'APD',n:'Air Products',sec:'Basic Materials',rev:13},{s:'ECL',n:'Ecolab',sec:'Basic Materials',rev:16},
+    {s:'STLD',n:'Steel Dynamics',sec:'Basic Materials',rev:16},{s:'ALB',n:'Albemarle',sec:'Basic Materials',rev:9},
+    {s:'MOS',n:'Mosaic',sec:'Basic Materials',rev:9},{s:'CF',n:'CF Industries',sec:'Basic Materials',rev:7},
+    {s:'VMC',n:'Vulcan Materials',sec:'Basic Materials',rev:8},{s:'MLM',n:'Martin Marietta',sec:'Basic Materials',rev:7},
     // Real Estate
-    {s:'AMT',n:'American Tower',sec:'Real Estate'},{s:'PLD',n:'Prologis',sec:'Real Estate'},
-    {s:'EQIX',n:'Equinix',sec:'Real Estate'},{s:'CCI',n:'Crown Castle',sec:'Real Estate'},
-    {s:'PSA',n:'Public Storage',sec:'Real Estate'},{s:'SPG',n:'Simon Property',sec:'Real Estate'},
+    {s:'AMT',n:'American Tower',sec:'Real Estate',rev:11},{s:'EQIX',n:'Equinix',sec:'Real Estate',rev:9},
+    {s:'PLD',n:'Prologis',sec:'Real Estate',rev:8},{s:'CCI',n:'Crown Castle',sec:'Real Estate',rev:7},
+    {s:'SPG',n:'Simon Property',sec:'Real Estate',rev:6},{s:'DLR',n:'Digital Realty',sec:'Real Estate',rev:6},
+    {s:'PSA',n:'Public Storage',sec:'Real Estate',rev:4},{s:'O',n:'Realty Income',sec:'Real Estate',rev:5},
     // Utilities
-    {s:'NEE',n:'NextEra Energy',sec:'Utilities'},{s:'DUK',n:'Duke Energy',sec:'Utilities'},
-    {s:'SO',n:'Southern Co',sec:'Utilities'},{s:'AEP',n:'AEP',sec:'Utilities'},
-    {s:'EXC',n:'Exelon',sec:'Utilities'},
+    {s:'NEE',n:'NextEra Energy',sec:'Utilities',rev:23},{s:'DUK',n:'Duke Energy',sec:'Utilities',rev:29},
+    {s:'SO',n:'Southern Co',sec:'Utilities',rev:25},{s:'D',n:'Dominion Energy',sec:'Utilities',rev:21},
+    {s:'SRE',n:'Sempra',sec:'Utilities',rev:15},{s:'AEP',n:'AEP',sec:'Utilities',rev:20},
+    {s:'EXC',n:'Exelon',sec:'Utilities',rev:22},{s:'PCG',n:'PG&E',sec:'Utilities',rev:24},
+    {s:'XEL',n:'Xcel Energy',sec:'Utilities',rev:14},{s:'WEC',n:'WEC Energy',sec:'Utilities',rev:10},
+    {s:'ES',n:'Eversource Energy',sec:'Utilities',rev:15},{s:'AES',n:'AES Corp',sec:'Utilities',rev:12},
+    {s:'CMS',n:'CMS Energy',sec:'Utilities',rev:8},
   ];
 
   // ── State ──────────────────────────────────────────────────────────────────
@@ -355,12 +434,23 @@
     return '$' + (n/1e6).toFixed(0) + 'M';
   }
 
-  // ── Sector filter UI ───────────────────────────────────────────────────────
-  document.getElementById('sector').addEventListener('change', function() {
-    const sec = this.value;
-    const n = sec ? UNIVERSE.filter(u => u.sec === sec).length : UNIVERSE.length;
+  // ── Universe filter UI ─────────────────────────────────────────────────────
+  function getUniverse() {
+    const sec    = document.getElementById('sector').value;
+    const minRev = +document.getElementById('minRev').value;
+    return UNIVERSE.filter(u =>
+      (!sec || u.sec === sec) &&
+      (u.rev == null || u.rev >= minRev)
+    );
+  }
+
+  function updateUniverseCount() {
+    const n = getUniverse().length;
     document.getElementById('universeCount').textContent = n;
-  });
+    document.getElementById('apiEstimate').textContent = (n * 2).toLocaleString();
+  }
+
+  updateUniverseCount();
 
   // ── Scoring ────────────────────────────────────────────────────────────────
   function computeScores(rows) {
@@ -625,13 +715,12 @@
     document.getElementById('viewToggle').style.display = 'none';
     document.getElementById('feedBar').classList.remove('visible');
 
-    const sector       = document.getElementById('sector').value;
     const minRevGrowth = +document.getElementById('minRevGrowth').value / 100;
     const maxPERatio   = +document.getElementById('maxPERatio').value;
     const minGross     = +document.getElementById('minGross').value / 100;
     const minNet       = +document.getElementById('minNet').value / 100;
 
-    const universe = sector ? UNIVERSE.filter(u => u.sec === sector) : UNIVERSE;
+    const universe = getUniverse();
     const n = universe.length;
     const allFetched = [];
 
