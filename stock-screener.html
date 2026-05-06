@@ -121,6 +121,16 @@
     .dp-link a:hover { text-decoration: underline; }
     .dp-loading { text-align: center; padding: 3rem; color: var(--dim); font-size: .85rem; }
 
+    .feed-bar { display: none; align-items: center; gap: .6rem; margin-top: .6rem; }
+    .feed-bar.visible { display: flex; }
+    #feedBtn { width: auto; margin-top: 0; padding: .28rem .75rem; font-size: .75rem; background: var(--panel2); color: var(--dim); border: 1px solid var(--border); border-radius: 999px; font-weight: 500; }
+    #feedBtn:hover { border-color: var(--green); color: var(--green); }
+    #feedBtn.active { background: rgba(76,175,80,.15); border-color: var(--green); color: var(--green); }
+    .feed-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--green); display: none; flex-shrink: 0; }
+    .feed-dot.on { display: inline-block; animation: pulse 1.4s ease-in-out infinite; }
+    #feedTime { font-size: .7rem; color: var(--dim); }
+    @keyframes pulse { 0%,100% { opacity: 1; transform: scale(1); } 50% { opacity: .35; transform: scale(.75); } }
+
     @media (max-width: 700px) {
       .layout { grid-template-columns: 1fr; }
       .sidebar { border-right: none; border-bottom: 1px solid var(--border); }
@@ -220,7 +230,14 @@
           <button class="pill" id="btnWatch" onclick="setView('watchlist')">&#9733; Watchlist (0)</button>
         </div>
       </div>
-      <span id="resultsCount"></span>
+      <div style="display:flex;align-items:center;gap:.75rem;flex-wrap:wrap">
+        <span id="resultsCount"></span>
+        <div class="feed-bar" id="feedBar">
+          <button id="feedBtn" onclick="toggleFeed()">&#9679; Live Feed</button>
+          <span class="feed-dot" id="feedDot"></span>
+          <span id="feedTime"></span>
+        </div>
+      </div>
     </div>
     <div id="resultsArea">
       <div class="empty">
@@ -245,6 +262,8 @@
   let viewMode = 'all';
   let apiKey = '';
   let watchlist = new Set(JSON.parse(localStorage.getItem('watchlist') || '[]'));
+  let feedInterval = null;
+  let feedActive = false;
 
   // ── Utilities ──────────────────────────────────────────────────────────────
 
@@ -507,6 +526,7 @@
     apiKey = key;
 
     hideErr();
+    if (feedActive) stopFeed();
     rows = [];
     viewMode = 'all';
     document.getElementById('runBtn').disabled = true;
@@ -516,6 +536,7 @@
     document.getElementById('resultsCount').textContent = '';
     document.getElementById('resultsTitle').textContent = 'Loading…';
     document.getElementById('viewToggle').style.display = 'none';
+    document.getElementById('feedBar').classList.remove('visible');
 
     const minCap       = +document.getElementById('minCap').value;
     const sector       = document.getElementById('sector').value;
@@ -561,7 +582,7 @@
           const peRel = (pe > 0 && indPE) ? pe / indPE : null;
           rows.push({ symbol: s.symbol, name: s.companyName, sector: s.sector,
                       marketCap: s.marketCap, pe, indPE, peRel, gross, net, revGrowth,
-                      sparkline: null, priceHistory: null });
+                      price: null, dayChange: null, sparkline: null, priceHistory: null });
         } catch { /* skip */ }
         if (i < n - 1) await sleep(80);
       }
@@ -580,6 +601,7 @@
       sortAsc = false;
       sortAndRender();
       document.getElementById('viewToggle').style.display = 'flex';
+      document.getElementById('feedBar').classList.add('visible');
       updateViewToggle();
       prog('Done', 100);
 
@@ -594,6 +616,55 @@
     }
   }
 
+  // ── Live feed ──────────────────────────────────────────────────────────────
+
+  async function pollQuotes() {
+    if (!rows.length || !apiKey) return;
+    const syms = rows.map(r => r.symbol).join(',');
+    try {
+      const quotes = await get(`${FMP}/quote/${syms}?apikey=${apiKey}`);
+      for (const q of quotes) {
+        const row = rows.find(r => r.symbol === q.symbol);
+        if (row) { row.price = q.price; row.dayChange = q.changesPercentage; }
+        const tr = document.querySelector(`tr[data-sym="${q.symbol}"]`);
+        if (!tr) continue;
+        const priceTd  = tr.querySelector('.td-price');
+        const changeTd = tr.querySelector('.td-change');
+        if (priceTd) priceTd.textContent = q.price != null ? '$' + q.price.toFixed(2) : '—';
+        if (changeTd) {
+          const v = q.changesPercentage;
+          const cls = v > 0 ? 'good' : v < 0 ? 'bad' : '';
+          changeTd.innerHTML = v != null ? `<span class="${cls}">${v > 0 ? '+' : ''}${v.toFixed(2)}%</span>` : '—';
+        }
+      }
+      const el = document.getElementById('feedTime');
+      if (el) el.textContent = new Date().toLocaleTimeString();
+    } catch (e) { console.warn('Quote poll error:', e.message); }
+  }
+
+  function startFeed() {
+    feedActive = true;
+    document.getElementById('feedBtn').textContent = '⏹ Stop Feed';
+    document.getElementById('feedBtn').classList.add('active');
+    document.getElementById('feedDot').classList.add('on');
+    pollQuotes();
+    feedInterval = setInterval(pollQuotes, 15000);
+  }
+
+  function stopFeed() {
+    feedActive = false;
+    clearInterval(feedInterval);
+    feedInterval = null;
+    document.getElementById('feedBtn').textContent = '● Live Feed';
+    document.getElementById('feedBtn').classList.remove('active');
+    document.getElementById('feedDot').classList.remove('on');
+    document.getElementById('feedTime').textContent = '';
+  }
+
+  function toggleFeed() {
+    if (feedActive) stopFeed(); else startFeed();
+  }
+
   // ── Table rendering ────────────────────────────────────────────────────────
 
   const COLS = [
@@ -601,6 +672,8 @@
     { key: 'symbol',    label: 'Ticker' },
     { key: 'name',      label: 'Company' },
     { key: 'sector',    label: 'Sector' },
+    { key: 'price',     label: 'Price' },
+    { key: 'dayChange', label: 'Day Chg%' },
     { key: 'score',     label: 'Score' },
     { key: 'marketCap', label: 'Mkt Cap' },
     { key: 'revGrowth', label: 'Rev Growth' },
@@ -659,11 +732,16 @@
       const grsCls = s.gross >= 0.5 ? 'good' : s.gross >= 0.3 ? 'ok' : 'bad';
       const netCls = s.net   >= 0.2 ? 'good' : s.net   >= 0.08 ? 'ok' : 'bad';
 
+      const chgCls = s.dayChange > 0 ? 'good' : s.dayChange < 0 ? 'bad' : '';
+      const chgTxt = s.dayChange != null
+        ? `<span class="${chgCls}">${s.dayChange > 0 ? '+' : ''}${s.dayChange.toFixed(2)}%</span>` : '—';
       html += `<tr class="data-row" data-sym="${s.symbol}" onclick="rowClick(event,'${s.symbol}')">
         <td><button class="star-btn${starred ? ' starred' : ''}" onclick="toggleWatch('${s.symbol}')">${starred ? '★' : '☆'}</button></td>
         <td class="sym">${s.symbol}</td>
         <td>${s.name ?? '—'}</td>
         <td><span class="tag">${s.sector || '—'}</span></td>
+        <td class="td-price">${s.price != null ? '$' + s.price.toFixed(2) : '<span style="color:var(--dim);font-size:.7rem">—</span>'}</td>
+        <td class="td-change">${chgTxt}</td>
         <td>${scoreBadge(s.score)}</td>
         <td>${fmtCap(s.marketCap)}</td>
         <td class="${revCls}">${fmtPct(s.revGrowth)}</td>
