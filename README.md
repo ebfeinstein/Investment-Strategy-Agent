@@ -11,24 +11,29 @@ Browser-based tools for finding high-quality stocks — fast-growing revenue, lo
 ### 📊 Stock Screener
 [stock-screener.html](https://ebfeinstein.github.io/Investment-Strategy-Agent/stock-screener.html)
 
-Screens 120 large-cap US stocks across 11 sectors using the Financial Modeling Prep API.
+Screens ~300 large-cap US stocks across 11 sectors using the Financial Modeling Prep API.
+
+**Universe filters:**
+- Min Revenue — $1B / $5B / $10B / $25B / $50B / $100B+ (defaults to $5B+)
+- Sector — narrow to a single sector or scan all
 
 **Screening criteria:**
 - Revenue growth (year-over-year)
-- P/E ratio vs. sector average
+- P/E ratio vs. sector average (sector averages computed live from scanned data)
 - Gross margin
 - Net margin
 
 **Features:**
-- Composite score (0–100) ranking stocks across all criteria
-- Watchlist with localStorage persistence
-- Stock detail drawer — key metrics, revenue history chart
-- Revenue trend sparkline per stock
-- Live price feed (price + day change %, updates every 60s)
+- Composite score (0–100) ranking matched stocks across all criteria
+- Watchlist with localStorage persistence across sessions
+- Stock detail drawer — key metrics (ROE, ROA, debt/equity), revenue history chart
+- 4-year revenue trend sparkline per stock
+- Live price feed — price + day change %, polls every 60 seconds
 - Export results to CSV
-- API key saved in browser
+- API key saved in browser (localStorage, never server-side)
+- Sidebar shows stocks-to-scan count and estimated API call usage before running
 
-**Requirements:** Free API key from [financialmodelingprep.com](https://financialmodelingprep.com/developer/docs)
+**Requirements:** Free API key from [financialmodelingprep.com](https://financialmodelingprep.com/developer/docs) (250 req/day on free tier)
 
 ---
 

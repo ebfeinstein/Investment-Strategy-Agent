@@ -4,7 +4,7 @@ This file provides guidance to Claude Code when working with code in this reposi
 
 ## Project overview
 
-A collection of browser-based investment analysis tools. Each tool is a fully self-contained single HTML file — no build step, no dependencies, no bundler. Hosted on GitHub Pages.
+A collection of browser-based investment analysis tools. Each tool is a fully self-contained single HTML file — no build step, no dependencies, no bundler. Hosted on GitHub Pages at https://ebfeinstein.github.io/Investment-Strategy-Agent/
 
 ## Running locally
 
@@ -18,25 +18,38 @@ Each tool is a single `.html` file with three inline sections: CSS in `<style>`,
 
 **index.html** — Landing page linking to all tools. Dark-themed card grid. Add a new card here whenever a new tool is created.
 
-**stock-screener.html** — Stock screener using the Financial Modeling Prep (FMP) API. Screens stocks by revenue growth, P/E ratio relative to sector average, gross margin, net margin, and market cap. Requires a free FMP API key entered at runtime (not stored anywhere server-side).
+**stock-screener.html** — Stock screener using the Financial Modeling Prep (FMP) stable API. Screens ~300 large-cap US stocks filtered by revenue, sector, and fundamental criteria. Requires a free FMP API key (saved to `localStorage`, never server-side).
 
 Key internals:
-- `rows[]` — result set from current scan; each entry holds all metrics plus `score`, `sparkline`, `priceHistory`
+- `UNIVERSE[]` — hardcoded list of ~300 large-cap US stocks, each with `{s, n, sec, rev}` (symbol, name, sector, revenue in $B). Revenue is used to pre-filter before API calls.
+- `getUniverse()` — applies the Min Revenue and Sector filters to `UNIVERSE` before scanning
+- `rows[]` — result set from current scan; each entry holds all metrics plus `score`, `sparkline`, `revenues`, `incomeStmts`, `price`, `dayChange`
 - `watchlist` — `Set` of symbols, persisted to `localStorage`
-- `computeScores(rows)` — min-max normalizes each metric across the result set, then computes a weighted composite 0–100 score
-- `fetchSparklines()` — runs in the background after a scan; patches sparkline `<td>` cells in the DOM as data arrives
-- `openDetail(symbol)` — fetches `/v3/profile` and `/v3/income-statement` for the clicked stock and renders a slide-in drawer
-- FMP endpoints used: `/v3/stock-screener`, `/v3/sector_price_earning_ratio`, `/v3/ratios/{sym}`, `/v3/income-statement-growth/{sym}`, `/v3/historical-price-full/{sym}`, `/v3/profile/{sym}`, `/v3/income-statement/{sym}`
+- `computeScores(rows)` — min-max normalizes rev growth (30%), PE ratio (20%), gross margin (25%), net margin (25%) across the result set into a 0–100 composite score
+- `fetchRevSpark(key)` — background fetch of `/stable/income-statement` for matched stocks; renders 4-year revenue sparklines
+- `pollQuotes()` — live feed; fetches `/stable/quote` per matched stock individually (free tier doesn't support batch), 300ms apart, 60s interval
+- `openDetail(symbol)` — fetches `/stable/income-statement` + `/stable/key-metrics`, renders a slide-in drawer with metrics, key ratios, and revenue history chart
+- Sector P/E is computed dynamically from fetched P/E values across the scanned universe — no dedicated endpoint needed
+
+FMP stable API endpoints used:
+- `GET /stable/ratios?symbol={sym}&limit=1` — P/E, gross/net margins
+- `GET /stable/income-statement-growth?symbol={sym}&limit=1` — revenue growth
+- `GET /stable/income-statement?symbol={sym}&limit=4` — revenue history (sparkline + detail chart)
+- `GET /stable/quote?symbol={sym}` — live price and day change
+- `GET /stable/key-metrics?symbol={sym}&limit=1` — market cap, ROE, ROA, debt/equity
+
+API budget: ~2 calls per stock scanned + ~1 per match (sparkline) + ~2 per detail panel open. Free tier = 250 req/day.
 
 ## Style conventions
 
-- Dark color themes using CSS custom properties (`--bg`, `--panel`, `--panel2`, `--text`, `--accent`, `--dim`, `--border`, etc.)
+- Dark color themes using CSS custom properties (`--bg`, `--panel`, `--panel2`, `--text`, `--accent`, `--dim`, `--border`, `--green`, `--yellow`, `--red`)
 - No external fonts, icons, or libraries — everything inline
 - Responsive via CSS Grid and `@media` breakpoints
-- Score badges, sector tags, and good/ok/bad color classes (`var(--green)`, `var(--yellow)`, `var(--red)`) used consistently across tools
+- Score badges, sector tags, and `.good` / `.ok` / `.bad` color classes used consistently
 
 ## Adding a new tool
 
 1. Create a new `.html` file following the single-file pattern above
 2. Add a card for it in `index.html`
-3. Use the same CSS custom properties for visual consistency
+3. Update `README.md` with a description of the new tool
+4. Use the same CSS custom properties for visual consistency
