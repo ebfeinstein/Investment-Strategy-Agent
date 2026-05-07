@@ -17,14 +17,15 @@ Screens ~300 large-cap US stocks across 11 sectors using the Financial Modeling 
 - Min Revenue — $1B / $5B / $10B / $25B / $50B / $100B+ (defaults to $5B+)
 - Sector — narrow to a single sector or scan all
 
-**Screening criteria:**
-- Revenue growth (year-over-year)
-- P/E ratio vs. sector average (sector averages computed live from scanned data)
-- Gross margin
-- Net margin
+**Screening criteria** (all optional — missing data passes, only present-but-failing data excludes):
+- Revenue growth (year-over-year) — default ≥ 5%
+- P/E ratio vs. sector average (sector averages computed live from scanned data) — default ≤ 2.0×
+- Gross margin — default ≥ 20%
+- Net margin — default ≥ 3%
 
 **Features:**
 - Composite score (0–100) ranking matched stocks across all criteria
+- Fallback display: if 0 stocks match, shows all scanned stocks ranked by score with a warning banner
 - Watchlist with localStorage persistence across sessions
 - Stock detail drawer — key metrics (ROE, ROA, debt/equity), revenue history chart
 - 4-year revenue trend sparkline per stock
@@ -32,6 +33,7 @@ Screens ~300 large-cap US stocks across 11 sectors using the Financial Modeling 
 - Export results to CSV
 - API key saved in browser (localStorage, never server-side)
 - Sidebar shows stocks-to-scan count and estimated API call usage before running
+- Results bar shows "X matched of Y fetched" for transparency
 
 **Requirements:** Free API key from [financialmodelingprep.com](https://financialmodelingprep.com/developer/docs) (250 req/day on free tier)
 

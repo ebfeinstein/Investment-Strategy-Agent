@@ -31,6 +31,14 @@ Key internals:
 - `openDetail(symbol)` — fetches `/stable/income-statement` + `/stable/key-metrics`, renders a slide-in drawer with metrics, key ratios, and revenue history chart
 - Sector P/E is computed dynamically from fetched P/E values across the scanned universe — no dedicated endpoint needed
 
+### Resilience / filter logic
+
+- A stock is only skipped if **both** `/stable/ratios` and `/stable/income-statement-growth` return empty — partial data is used.
+- Field name fallbacks handle stable API variations: `priceEarningsRatio ?? peRatio`, `growthRevenue ?? revenueGrowth ?? growthRevenueRatio`.
+- Filter uses null-tolerant logic: a missing metric **passes** the filter (it is not penalized). Only a present metric that fails the threshold excludes the stock.
+- Fallback: if 0 stocks pass all criteria, all fetched stocks are shown ranked by composite score with a yellow warning banner.
+- Default thresholds are intentionally lenient: rev growth ≥ 5%, P/E vs sector ≤ 2.0×, gross margin ≥ 20%, net margin ≥ 3%.
+
 FMP stable API endpoints used:
 - `GET /stable/ratios?symbol={sym}&limit=1` — P/E, gross/net margins
 - `GET /stable/income-statement-growth?symbol={sym}&limit=1` — revenue growth
